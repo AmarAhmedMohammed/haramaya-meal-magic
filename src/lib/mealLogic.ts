@@ -141,16 +141,20 @@ export function checkMealEligibility(
   };
 }
 
-export function validateCode39Barcode(barcode: string): boolean {
-  // Code 39 valid characters: A-Z, 0-9, space, and special chars: - . $ / + %
-  const code39Pattern = /^[A-Z0-9\s\-\.\$\/\+\%]+$/;
+export function validateStudentBarcode(barcode: string): boolean {
+  // Accept alphanumeric barcodes with common separators (/, -, etc.)
+  // Examples: UGPR0680/16, STU-123456, ABC12345
+  const barcodePattern = /^[A-Za-z0-9\s\-\.\/\+\_]+$/;
   
-  if (!barcode || barcode.length < 4 || barcode.length > 20) {
+  if (!barcode || barcode.length < 3 || barcode.length > 30) {
     return false;
   }
   
-  return code39Pattern.test(barcode.toUpperCase());
+  return barcodePattern.test(barcode);
 }
+
+// Keep backward compatibility
+export const validateCode39Barcode = validateStudentBarcode;
 
 export function formatTimeRemaining(targetTime: Date): string {
   const now = new Date();

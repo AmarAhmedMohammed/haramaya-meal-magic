@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/library';
+import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, CameraOff, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { validateCode39Barcode } from '@/lib/mealLogic';
+import { validateStudentBarcode } from '@/lib/mealLogic';
 
 interface BarcodeScannerProps {
   onScan: (barcode: string) => void;
@@ -64,39 +64,52 @@ export function BarcodeScanner({ onScan, isProcessing = false, disabled = false 
 
       setCameraReady(true);
 
-      // Initialize the barcode reader
-      const reader = new BrowserMultiFormatReader();
+      // Initialize barcode reader with multiple format support for faster detection
+      const hints = new Map();
+      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+        BarcodeFormat.CODE_39,
+        BarcodeFormat.CODE_128,
+        BarcodeFormat.EAN_13,
+        BarcodeFormat.EAN_8,
+        BarcodeFormat.ITF,
+        BarcodeFormat.CODABAR,
+        BarcodeFormat.UPC_A,
+        BarcodeFormat.UPC_E,
+      ]);
+      hints.set(DecodeHintType.TRY_HARDER, true);
+      
+      const reader = new BrowserMultiFormatReader(hints);
       readerRef.current = reader;
 
-      // Start continuous decoding
+      // Start continuous high-speed decoding
       const decodeLoop = async () => {
-        if (!readerRef.current || !videoRef.current || !isScanning) return;
+        if (!readerRef.current || !videoRef.current) return;
 
         try {
           const result = await reader.decodeFromVideoElement(videoRef.current);
           
           if (result && !cooldownRef.current && !isProcessing) {
-            const barcodeText = result.getText().toUpperCase();
+            const barcodeText = result.getText().trim();
             
-            // Validate Code 39 format
-            if (validateCode39Barcode(barcodeText) && barcodeText !== lastScannedRef.current) {
+            // Validate barcode format (accepts various student ID formats)
+            if (validateStudentBarcode(barcodeText) && barcodeText !== lastScannedRef.current) {
               lastScannedRef.current = barcodeText;
               cooldownRef.current = true;
               
               onScan(barcodeText);
               
-              // Cooldown to prevent rapid duplicate scans
+              // Short cooldown for rapid scanning capability
               setTimeout(() => {
                 cooldownRef.current = false;
                 lastScannedRef.current = '';
-              }, 3000);
+              }, 1500);
             }
           }
         } catch (err) {
           // No barcode found in this frame, continue scanning
         }
 
-        // Continue scanning
+        // Continue high-frequency scanning
         if (readerRef.current) {
           requestAnimationFrame(decodeLoop);
         }
