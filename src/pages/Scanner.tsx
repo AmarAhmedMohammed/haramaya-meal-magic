@@ -9,13 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useMealSettings } from '@/contexts/MealSettingsContext';
 import { getCurrentMealType, checkMealEligibility, MealEligibilityResult } from '@/lib/mealLogic';
 import { formatDualDate } from '@/lib/ethiopianCalendar';
 import { Student, MealType, Cafeteria, MealLog } from '@/types';
-import { Wifi, WifiOff, Clock, History, Keyboard, AlertTriangle } from 'lucide-react';
+import { Wifi, WifiOff, Clock, History, Keyboard, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 // Mock data for demo
 const mockCafeterias: Cafeteria[] = [
@@ -71,6 +72,7 @@ const mockStudents: Record<string, Student> = {
 
 export default function Scanner() {
   const { t, language } = useLanguage();
+  const { settings } = useMealSettings();
   const [selectedCafeteria, setSelectedCafeteria] = useState<string>(mockCafeterias[0].cafeteriaId);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanResult, setScanResult] = useState<MealEligibilityResult | null>(null);
@@ -78,21 +80,28 @@ export default function Scanner() {
   const [currentMealType, setCurrentMealType] = useState<MealType | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [recentScans, setRecentScans] = useState<MealLog[]>([]);
-  const [demoMode, setDemoMode] = useState(true); // Enable demo mode by default
   const [manualBarcode, setManualBarcode] = useState('');
-  const [selectedMealType, setSelectedMealType] = useState<MealType>('lunch');
 
   const today = new Date();
   const dualDate = formatDualDate(today, language);
-  const activeMeal = getCurrentMealType();
+  
+  // Use settings from context
+  const systemSettings = { 
+    mealWindows: settings.mealWindows, 
+    lockDurationMinutes: settings.lockDurationMinutes, 
+    showEthiopianDate: true, 
+    defaultLanguage: 'en' as const 
+  };
+  const activeMeal = getCurrentMealType(new Date(), systemSettings);
 
   const cafeteria = mockCafeterias.find(c => c.cafeteriaId === selectedCafeteria)!;
 
-  // In demo mode, allow scanning anytime; otherwise only during meal windows
-  const canScan = demoMode || activeMeal !== null;
-  const effectiveMealType = activeMeal || selectedMealType;
+  // Scanner only works during active meal windows
+  const canScan = activeMeal !== null;
 
   const handleScan = useCallback(async (barcode: string) => {
+    if (!activeMeal) return;
+    
     setIsProcessing(true);
     
     // Simulate network delay
@@ -100,10 +109,10 @@ export default function Scanner() {
 
     const student = mockStudents[barcode.toUpperCase()] || null;
     
-    const result = checkMealEligibility(student, effectiveMealType, cafeteria);
+    const result = checkMealEligibility(student, activeMeal, cafeteria, systemSettings);
     
     setScannedStudent(student);
-    setCurrentMealType(effectiveMealType);
+    setCurrentMealType(activeMeal);
     setScanResult(result);
     
     // Add to recent scans
@@ -111,7 +120,7 @@ export default function Scanner() {
       id: Date.now().toString(),
       studentId: student?.studentId || barcode,
       studentName: student?.fullName || 'Unknown Student',
-      mealType: effectiveMealType,
+      mealType: activeMeal,
       cafeteriaId: cafeteria.cafeteriaId,
       cafeteriaName: cafeteria.name,
       timestamp: new Date(),
@@ -124,14 +133,14 @@ export default function Scanner() {
     // Update student's last meal if granted
     if (result.eligible && student && mockStudents[barcode.toUpperCase()]) {
       mockStudents[barcode.toUpperCase()].lastMeal = {
-        mealType: effectiveMealType,
+        mealType: activeMeal,
         timestamp: new Date(),
         cafeteriaId: cafeteria.cafeteriaId,
       };
     }
     
     setIsProcessing(false);
-  }, [cafeteria, isOnline, effectiveMealType]);
+  }, [cafeteria, isOnline, activeMeal, systemSettings]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,17 +183,13 @@ export default function Scanner() {
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Demo Mode Toggle */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
-              <Label htmlFor="demo-mode" className="text-sm font-medium cursor-pointer">
-                Demo Mode
-              </Label>
-              <Switch
-                id="demo-mode"
-                checked={demoMode}
-                onCheckedChange={setDemoMode}
-              />
-            </div>
+            {/* Settings Link */}
+            <Link to="/settings">
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="w-4 h-4" />
+                Meal Settings
+              </Button>
+            </Link>
 
             {/* Online status */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
@@ -214,31 +219,6 @@ export default function Scanner() {
 
         {/* Current Meal Status */}
         <CurrentMealStatus />
-
-        {/* Demo Mode Meal Selector */}
-        {demoMode && !activeMeal && (
-          <Card variant="bordered" className="border-accent/50 bg-accent/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <AlertTriangle className="w-5 h-5 text-accent" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-foreground">Demo Mode Active</p>
-                  <p className="text-xs text-muted-foreground">No active meal window - select a meal type for testing</p>
-                </div>
-                <Select value={selectedMealType} onValueChange={(v) => setSelectedMealType(v as MealType)}>
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="breakfast">{t('breakfast')}</SelectItem>
-                    <SelectItem value="lunch">{t('lunch')}</SelectItem>
-                    <SelectItem value="dinner">{t('dinner')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Scanner and Result */}
         <div className="grid lg:grid-cols-2 gap-6">
