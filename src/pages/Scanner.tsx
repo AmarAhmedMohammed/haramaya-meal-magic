@@ -7,12 +7,15 @@ import { CurrentMealStatus } from '@/components/scanner/CurrentMealStatus';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getCurrentMealType, checkMealEligibility, MealEligibilityResult } from '@/lib/mealLogic';
 import { formatDualDate } from '@/lib/ethiopianCalendar';
 import { Student, MealType, Cafeteria, MealLog } from '@/types';
-import { Wifi, WifiOff, Clock, History } from 'lucide-react';
+import { Wifi, WifiOff, Clock, History, Keyboard, AlertTriangle } from 'lucide-react';
 
 // Mock data for demo
 const mockCafeterias: Cafeteria[] = [
@@ -75,6 +78,9 @@ export default function Scanner() {
   const [currentMealType, setCurrentMealType] = useState<MealType | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [recentScans, setRecentScans] = useState<MealLog[]>([]);
+  const [demoMode, setDemoMode] = useState(true); // Enable demo mode by default
+  const [manualBarcode, setManualBarcode] = useState('');
+  const [selectedMealType, setSelectedMealType] = useState<MealType>('lunch');
 
   const today = new Date();
   const dualDate = formatDualDate(today, language);
@@ -82,49 +88,58 @@ export default function Scanner() {
 
   const cafeteria = mockCafeterias.find(c => c.cafeteriaId === selectedCafeteria)!;
 
+  // In demo mode, allow scanning anytime; otherwise only during meal windows
+  const canScan = demoMode || activeMeal !== null;
+  const effectiveMealType = activeMeal || selectedMealType;
+
   const handleScan = useCallback(async (barcode: string) => {
     setIsProcessing(true);
     
     // Simulate network delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    const student = mockStudents[barcode] || null;
-    const mealType = getCurrentMealType() || 'lunch'; // Default to lunch for demo
+    const student = mockStudents[barcode.toUpperCase()] || null;
     
-    const result = checkMealEligibility(student, mealType, cafeteria);
+    const result = checkMealEligibility(student, effectiveMealType, cafeteria);
     
     setScannedStudent(student);
-    setCurrentMealType(mealType);
+    setCurrentMealType(effectiveMealType);
     setScanResult(result);
     
     // Add to recent scans
-    if (student) {
-      const newLog: MealLog = {
-        id: Date.now().toString(),
-        studentId: student.studentId,
-        studentName: student.fullName,
-        mealType,
-        cafeteriaId: cafeteria.cafeteriaId,
-        cafeteriaName: cafeteria.name,
+    const newLog: MealLog = {
+      id: Date.now().toString(),
+      studentId: student?.studentId || barcode,
+      studentName: student?.fullName || 'Unknown Student',
+      mealType: effectiveMealType,
+      cafeteriaId: cafeteria.cafeteriaId,
+      cafeteriaName: cafeteria.name,
+      timestamp: new Date(),
+      result: result.result,
+      reason: result.reason,
+      synced: isOnline,
+    };
+    setRecentScans(prev => [newLog, ...prev.slice(0, 19)]);
+    
+    // Update student's last meal if granted
+    if (result.eligible && student && mockStudents[barcode.toUpperCase()]) {
+      mockStudents[barcode.toUpperCase()].lastMeal = {
+        mealType: effectiveMealType,
         timestamp: new Date(),
-        result: result.result,
-        reason: result.reason,
-        synced: isOnline,
+        cafeteriaId: cafeteria.cafeteriaId,
       };
-      setRecentScans(prev => [newLog, ...prev.slice(0, 19)]);
-      
-      // Update student's last meal if granted
-      if (result.eligible && mockStudents[barcode]) {
-        mockStudents[barcode].lastMeal = {
-          mealType,
-          timestamp: new Date(),
-          cafeteriaId: cafeteria.cafeteriaId,
-        };
-      }
     }
     
     setIsProcessing(false);
-  }, [cafeteria, isOnline]);
+  }, [cafeteria, isOnline, effectiveMealType]);
+
+  const handleManualSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (manualBarcode.trim()) {
+      handleScan(manualBarcode.trim());
+      setManualBarcode('');
+    }
+  };
 
   const dismissResult = () => {
     setScanResult(null);
@@ -159,6 +174,18 @@ export default function Scanner() {
           </div>
           
           <div className="flex items-center gap-3">
+            {/* Demo Mode Toggle */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
+              <Label htmlFor="demo-mode" className="text-sm font-medium cursor-pointer">
+                Demo Mode
+              </Label>
+              <Switch
+                id="demo-mode"
+                checked={demoMode}
+                onCheckedChange={setDemoMode}
+              />
+            </div>
+
             {/* Online status */}
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
               isOnline 
@@ -188,6 +215,31 @@ export default function Scanner() {
         {/* Current Meal Status */}
         <CurrentMealStatus />
 
+        {/* Demo Mode Meal Selector */}
+        {demoMode && !activeMeal && (
+          <Card variant="bordered" className="border-accent/50 bg-accent/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <AlertTriangle className="w-5 h-5 text-accent" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Demo Mode Active</p>
+                  <p className="text-xs text-muted-foreground">No active meal window - select a meal type for testing</p>
+                </div>
+                <Select value={selectedMealType} onValueChange={(v) => setSelectedMealType(v as MealType)}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="breakfast">{t('breakfast')}</SelectItem>
+                    <SelectItem value="lunch">{t('lunch')}</SelectItem>
+                    <SelectItem value="dinner">{t('dinner')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Scanner and Result */}
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Scanner */}
@@ -198,7 +250,7 @@ export default function Scanner() {
                 {t('scanBarcode')}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
               {scanResult ? (
                 <ScanResultDisplay
                   result={scanResult}
@@ -207,20 +259,48 @@ export default function Scanner() {
                   onDismiss={dismissResult}
                 />
               ) : (
-                <BarcodeScanner
-                  onScan={handleScan}
-                  isProcessing={isProcessing}
-                  disabled={!activeMeal}
-                />
+                <>
+                  <BarcodeScanner
+                    onScan={handleScan}
+                    isProcessing={isProcessing}
+                    disabled={!canScan}
+                  />
+                  
+                  {!canScan && (
+                    <div className="p-4 bg-warning/10 rounded-lg text-center">
+                      <p className="text-warning font-medium">
+                        No active meal window. Enable Demo Mode to test scanning.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
-              
-              {!activeMeal && !scanResult && (
-                <div className="mt-4 p-4 bg-warning/10 rounded-lg text-center">
-                  <p className="text-warning font-medium">
-                    No active meal window. Scanner disabled.
-                  </p>
-                </div>
-              )}
+
+              {/* Manual Barcode Input */}
+              <div className="border-t pt-4">
+                <form onSubmit={handleManualSubmit} className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Keyboard className="w-4 h-4" />
+                    Manual Barcode Entry
+                  </Label>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter student ID (e.g., HU2024001)"
+                      value={manualBarcode}
+                      onChange={(e) => setManualBarcode(e.target.value.toUpperCase())}
+                      disabled={!canScan || isProcessing}
+                      className="flex-1 font-mono"
+                    />
+                    <Button 
+                      type="submit" 
+                      disabled={!canScan || isProcessing || !manualBarcode.trim()}
+                      variant="default"
+                    >
+                      Submit
+                    </Button>
+                  </div>
+                </form>
+              </div>
             </CardContent>
           </Card>
 
@@ -233,7 +313,7 @@ export default function Scanner() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              <div className="space-y-3 max-h-[500px] overflow-y-auto">
                 {recentScans.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
                     No scans yet today
@@ -279,9 +359,10 @@ export default function Scanner() {
         <Card variant="bordered" className="border-dashed">
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground text-center">
-              <strong>Demo Mode:</strong> Use test barcodes: <code className="bg-muted px-1.5 py-0.5 rounded">HU2024001</code> (active), 
-              <code className="bg-muted px-1.5 py-0.5 rounded ml-1">HU2024002</code> (quota), 
-              <code className="bg-muted px-1.5 py-0.5 rounded ml-1">HU2024003</code> (blocked)
+              <strong>Test IDs:</strong>{' '}
+              <code className="bg-muted px-1.5 py-0.5 rounded">HU2024001</code> (active student),{' '}
+              <code className="bg-muted px-1.5 py-0.5 rounded">HU2024002</code> (has quota),{' '}
+              <code className="bg-muted px-1.5 py-0.5 rounded">HU2024003</code> (blocked - none cafe)
             </p>
           </CardContent>
         </Card>
