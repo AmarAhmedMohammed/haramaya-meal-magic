@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Table, 
   TableBody, 
@@ -17,12 +18,37 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Student } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import { Student, CafeStatus } from '@/types';
 import { 
   Search, 
   Plus, 
@@ -32,11 +58,12 @@ import {
   MoreHorizontal,
   Edit,
   Trash2,
-  User
+  User,
+  Eye
 } from 'lucide-react';
 
-// Mock data
-const mockStudents: Student[] = [
+// Initial mock data
+const initialStudents: Student[] = [
   { id: '1', studentId: 'HU2024001', fullName: 'Abebe Kebede', fullNameAmharic: 'አበበ ከበደ', department: 'Computer Science', year: 3, cafeStatus: 'cafe', hostelResident: true, monthlyQuota: null, usedQuota: 0, createdAt: new Date(), updatedAt: new Date() },
   { id: '2', studentId: 'HU2024002', fullName: 'Sara Tesfaye', fullNameAmharic: 'ሳራ ተስፋዬ', department: 'Engineering', year: 2, cafeStatus: 'cafe', hostelResident: false, monthlyQuota: 60, usedQuota: 45, createdAt: new Date(), updatedAt: new Date() },
   { id: '3', studentId: 'HU2024003', fullName: 'Dawit Haile', fullNameAmharic: 'ዳዊት ሃይሌ', department: 'Medicine', year: 4, cafeStatus: 'none', hostelResident: true, monthlyQuota: null, usedQuota: 0, createdAt: new Date(), updatedAt: new Date() },
@@ -44,16 +71,159 @@ const mockStudents: Student[] = [
   { id: '5', studentId: 'HU2024005', fullName: 'Yohannes Bekele', fullNameAmharic: 'ዮሐንስ በቀለ', department: 'Law', year: 3, cafeStatus: 'cafe', hostelResident: true, monthlyQuota: 90, usedQuota: 78, createdAt: new Date(), updatedAt: new Date() },
 ];
 
+interface StudentFormData {
+  studentId: string;
+  fullName: string;
+  fullNameAmharic: string;
+  department: string;
+  year: number;
+  cafeStatus: CafeStatus;
+  hostelResident: boolean;
+  monthlyQuota: number | null;
+}
+
+const emptyFormData: StudentFormData = {
+  studentId: '',
+  fullName: '',
+  fullNameAmharic: '',
+  department: '',
+  year: 1,
+  cafeStatus: 'cafe',
+  hostelResident: false,
+  monthlyQuota: null,
+};
+
 export default function Students() {
   const { t, language } = useLanguage();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [students] = useState<Student[]>(mockStudents);
+  const [students, setStudents] = useState<Student[]>(initialStudents);
+  
+  // Dialog states
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [formData, setFormData] = useState<StudentFormData>(emptyFormData);
 
   const filteredStudents = students.filter(student =>
     student.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
     student.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleInputChange = (field: keyof StudentFormData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddStudent = () => {
+    if (!formData.studentId || !formData.fullName || !formData.department) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fill in all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Check for duplicate student ID
+    if (students.some(s => s.studentId === formData.studentId)) {
+      toast({
+        title: 'Duplicate ID',
+        description: 'A student with this ID already exists.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const newStudent: Student = {
+      id: Date.now().toString(),
+      ...formData,
+      usedQuota: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    setStudents(prev => [...prev, newStudent]);
+    setIsAddDialogOpen(false);
+    setFormData(emptyFormData);
+    
+    toast({
+      title: 'Student Added',
+      description: `${formData.fullName} has been added successfully.`,
+    });
+  };
+
+  const handleEditStudent = () => {
+    if (!selectedStudent || !formData.fullName || !formData.department) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please fill in all required fields.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setStudents(prev => prev.map(s => 
+      s.id === selectedStudent.id 
+        ? { ...s, ...formData, updatedAt: new Date() }
+        : s
+    ));
+    
+    setIsEditDialogOpen(false);
+    setSelectedStudent(null);
+    setFormData(emptyFormData);
+    
+    toast({
+      title: 'Student Updated',
+      description: `${formData.fullName}'s information has been updated.`,
+    });
+  };
+
+  const handleDeleteStudent = () => {
+    if (!selectedStudent) return;
+
+    setStudents(prev => prev.filter(s => s.id !== selectedStudent.id));
+    setIsDeleteDialogOpen(false);
+    
+    toast({
+      title: 'Student Deleted',
+      description: `${selectedStudent.fullName} has been removed from the system.`,
+    });
+    
+    setSelectedStudent(null);
+  };
+
+  const openEditDialog = (student: Student) => {
+    setSelectedStudent(student);
+    setFormData({
+      studentId: student.studentId,
+      fullName: student.fullName,
+      fullNameAmharic: student.fullNameAmharic || '',
+      department: student.department,
+      year: student.year,
+      cafeStatus: student.cafeStatus,
+      hostelResident: student.hostelResident,
+      monthlyQuota: student.monthlyQuota,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const openDeleteDialog = (student: Student) => {
+    setSelectedStudent(student);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const openViewDialog = (student: Student) => {
+    setSelectedStudent(student);
+    setIsViewDialogOpen(true);
+  };
+
+  const openAddDialog = () => {
+    setFormData(emptyFormData);
+    setIsAddDialogOpen(true);
+  };
 
   return (
     <Layout>
@@ -75,7 +245,7 @@ export default function Students() {
               <Download className="w-4 h-4" />
               {t('export')}
             </Button>
-            <Button variant="hero" className="gap-2">
+            <Button variant="hero" className="gap-2" onClick={openAddDialog}>
               <Plus className="w-4 h-4" />
               Add Student
             </Button>
@@ -117,80 +287,110 @@ export default function Students() {
                     <TableHead>Status</TableHead>
                     <TableHead>Quota</TableHead>
                     <TableHead>Hostel</TableHead>
-                    <TableHead className="w-12"></TableHead>
+                    <TableHead className="w-12">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredStudents.map((student, index) => (
-                    <motion.tr
-                      key={student.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
-                      className="group"
-                    >
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                            {student.photoURL ? (
-                              <img src={student.photoURL} alt="" className="w-full h-full rounded-full object-cover" />
-                            ) : (
-                              <User className="w-5 h-5 text-muted-foreground" />
-                            )}
+                  {filteredStudents.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        No students found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredStudents.map((student, index) => (
+                      <motion.tr
+                        key={student.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.03 }}
+                        className="group border-b"
+                      >
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                              {student.photoURL ? (
+                                <img src={student.photoURL} alt="" className="w-full h-full rounded-full object-cover" />
+                              ) : (
+                                <User className="w-5 h-5 text-muted-foreground" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {language === 'am' && student.fullNameAmharic 
+                                  ? student.fullNameAmharic 
+                                  : student.fullName}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {language === 'am' && student.fullNameAmharic 
-                                ? student.fullNameAmharic 
-                                : student.fullName}
-                            </p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
-                          {student.studentId}
-                        </code>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {student.department}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">Year {student.year}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={student.cafeStatus === 'cafe' ? 'cafe' : 'none'}>
-                          {student.cafeStatus === 'cafe' ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {student.monthlyQuota ? (
-                          <div className="text-sm">
-                            <span className="font-medium">{student.usedQuota}</span>
-                            <span className="text-muted-foreground">/{student.monthlyQuota}</span>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Unlimited</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {student.hostelResident ? (
-                          <Badge variant="secondary">Yes</Badge>
-                        ) : (
-                          <span className="text-muted-foreground">No</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </TableCell>
-                    </motion.tr>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                            {student.studentId}
+                          </code>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {student.department}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">Year {student.year}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={student.cafeStatus === 'cafe' ? 'cafe' : 'none'}>
+                            {student.cafeStatus === 'cafe' ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {student.monthlyQuota ? (
+                            <div className="text-sm">
+                              <span className="font-medium">{student.usedQuota}</span>
+                              <span className="text-muted-foreground">/{student.monthlyQuota}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground">Unlimited</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {student.hostelResident ? (
+                            <Badge variant="secondary">Yes</Badge>
+                          ) : (
+                            <span className="text-muted-foreground">No</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openViewDialog(student)}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openEditDialog(student)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Edit Student
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => openDeleteDialog(student)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete Student
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </motion.tr>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>
@@ -231,6 +431,323 @@ export default function Students() {
           </Card>
         </div>
       </div>
+
+      {/* Add Student Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Add New Student</DialogTitle>
+            <DialogDescription>
+              Enter the student's information to register them for cafeteria service.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="studentId">Student ID *</Label>
+                <Input
+                  id="studentId"
+                  placeholder="HU2024XXX"
+                  value={formData.studentId}
+                  onChange={(e) => handleInputChange('studentId', e.target.value.toUpperCase())}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="year">Year *</Label>
+                <Select 
+                  value={formData.year.toString()} 
+                  onValueChange={(v) => handleInputChange('year', parseInt(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6].map(y => (
+                      <SelectItem key={y} value={y.toString()}>Year {y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Full Name (English) *</Label>
+              <Input
+                id="fullName"
+                placeholder="Abebe Kebede"
+                value={formData.fullName}
+                onChange={(e) => handleInputChange('fullName', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="fullNameAmharic">Full Name (Amharic)</Label>
+              <Input
+                id="fullNameAmharic"
+                placeholder="አበበ ከበደ"
+                value={formData.fullNameAmharic}
+                onChange={(e) => handleInputChange('fullNameAmharic', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="department">Department *</Label>
+              <Input
+                id="department"
+                placeholder="Computer Science"
+                value={formData.department}
+                onChange={(e) => handleInputChange('department', e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cafeStatus">Cafe Status</Label>
+                <Select 
+                  value={formData.cafeStatus} 
+                  onValueChange={(v) => handleInputChange('cafeStatus', v as CafeStatus)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cafe">Active (Cafe)</SelectItem>
+                    <SelectItem value="none">Inactive (None)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="monthlyQuota">Monthly Quota</Label>
+                <Input
+                  id="monthlyQuota"
+                  type="number"
+                  placeholder="Unlimited"
+                  value={formData.monthlyQuota || ''}
+                  onChange={(e) => handleInputChange('monthlyQuota', e.target.value ? parseInt(e.target.value) : null)}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="hostelResident"
+                checked={formData.hostelResident}
+                onChange={(e) => handleInputChange('hostelResident', e.target.checked)}
+                className="rounded border-input"
+              />
+              <Label htmlFor="hostelResident" className="text-sm font-normal">
+                Hostel Resident
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="hero" onClick={handleAddStudent}>
+              Add Student
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Student Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Student</DialogTitle>
+            <DialogDescription>
+              Update the student's information.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-studentId">Student ID</Label>
+                <Input
+                  id="edit-studentId"
+                  value={formData.studentId}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-year">Year *</Label>
+                <Select 
+                  value={formData.year.toString()} 
+                  onValueChange={(v) => handleInputChange('year', parseInt(v))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[1, 2, 3, 4, 5, 6].map(y => (
+                      <SelectItem key={y} value={y.toString()}>Year {y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-fullName">Full Name (English) *</Label>
+              <Input
+                id="edit-fullName"
+                value={formData.fullName}
+                onChange={(e) => handleInputChange('fullName', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-fullNameAmharic">Full Name (Amharic)</Label>
+              <Input
+                id="edit-fullNameAmharic"
+                value={formData.fullNameAmharic}
+                onChange={(e) => handleInputChange('fullNameAmharic', e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-department">Department *</Label>
+              <Input
+                id="edit-department"
+                value={formData.department}
+                onChange={(e) => handleInputChange('department', e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-cafeStatus">Cafe Status</Label>
+                <Select 
+                  value={formData.cafeStatus} 
+                  onValueChange={(v) => handleInputChange('cafeStatus', v as CafeStatus)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cafe">Active (Cafe)</SelectItem>
+                    <SelectItem value="none">Inactive (None)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-monthlyQuota">Monthly Quota</Label>
+                <Input
+                  id="edit-monthlyQuota"
+                  type="number"
+                  placeholder="Unlimited"
+                  value={formData.monthlyQuota || ''}
+                  onChange={(e) => handleInputChange('monthlyQuota', e.target.value ? parseInt(e.target.value) : null)}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="edit-hostelResident"
+                checked={formData.hostelResident}
+                onChange={(e) => handleInputChange('hostelResident', e.target.checked)}
+                className="rounded border-input"
+              />
+              <Label htmlFor="edit-hostelResident" className="text-sm font-normal">
+                Hostel Resident
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="hero" onClick={handleEditStudent}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Student Dialog */}
+      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Student Details</DialogTitle>
+          </DialogHeader>
+          {selectedStudent && (
+            <div className="space-y-4 py-4">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                  <User className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedStudent.fullName}</h3>
+                  {selectedStudent.fullNameAmharic && (
+                    <p className="text-muted-foreground">{selectedStudent.fullNameAmharic}</p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="text-muted-foreground">Student ID</p>
+                  <p className="font-medium">{selectedStudent.studentId}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Department</p>
+                  <p className="font-medium">{selectedStudent.department}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Year</p>
+                  <p className="font-medium">Year {selectedStudent.year}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Cafe Status</p>
+                  <Badge variant={selectedStudent.cafeStatus === 'cafe' ? 'cafe' : 'none'}>
+                    {selectedStudent.cafeStatus === 'cafe' ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Hostel Resident</p>
+                  <p className="font-medium">{selectedStudent.hostelResident ? 'Yes' : 'No'}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Monthly Quota</p>
+                  <p className="font-medium">
+                    {selectedStudent.monthlyQuota 
+                      ? `${selectedStudent.usedQuota}/${selectedStudent.monthlyQuota}` 
+                      : 'Unlimited'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+              Close
+            </Button>
+            <Button variant="default" onClick={() => {
+              setIsViewDialogOpen(false);
+              if (selectedStudent) openEditDialog(selectedStudent);
+            }}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Student</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{selectedStudent?.fullName}</strong>? 
+              This action cannot be undone and will remove all their meal records.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteStudent}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete Student
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
