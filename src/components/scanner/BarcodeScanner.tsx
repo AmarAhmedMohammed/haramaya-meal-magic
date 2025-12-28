@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
+import { BrowserMultiFormatReader, BarcodeFormat } from '@zxing/library';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, CameraOff, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,42 +19,62 @@ export function BarcodeScanner({ onScan, isProcessing = false, disabled = false 
   const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const lastScannedRef = useRef<string>('');
   const cooldownRef = useRef<boolean>(false);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const stopScanning = useCallback(() => {
+    if (readerRef.current) {
+      readerRef.current.reset();
+      readerRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setIsScanning(false);
+    setCameraReady(false);
+  }, []);
 
   const startScanning = useCallback(async () => {
     if (!videoRef.current || disabled) return;
 
     try {
       setError(null);
+      setIsScanning(true);
       
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [BarcodeFormat.CODE_39]);
-      hints.set(DecodeHintType.TRY_HARDER, true);
+      // Request camera permission first
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { 
+          facingMode: 'environment', // Prefer back camera
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      });
       
-      const reader = new BrowserMultiFormatReader(hints);
+      streamRef.current = stream;
+      videoRef.current.srcObject = stream;
+      
+      await new Promise<void>((resolve) => {
+        if (videoRef.current) {
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current?.play();
+            resolve();
+          };
+        }
+      });
+
+      setCameraReady(true);
+
+      // Initialize the barcode reader
+      const reader = new BrowserMultiFormatReader();
       readerRef.current = reader;
 
-      // Get video input devices
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoInputDevices = devices.filter(device => device.kind === 'videoinput');
-      
-      if (videoInputDevices.length === 0) {
-        setError('No camera found');
-        return;
-      }
+      // Start continuous decoding
+      const decodeLoop = async () => {
+        if (!readerRef.current || !videoRef.current || !isScanning) return;
 
-      // Prefer back camera on mobile devices
-      const backCamera = videoInputDevices.find(device => 
-        device.label.toLowerCase().includes('back') || 
-        device.label.toLowerCase().includes('rear')
-      );
-      const deviceId = backCamera?.deviceId || videoInputDevices[0].deviceId;
-
-      setIsScanning(true);
-
-      reader.decodeFromVideoDevice(
-        deviceId,
-        videoRef.current,
-        (result, err) => {
+        try {
+          const result = await reader.decodeFromVideoElement(videoRef.current);
+          
           if (result && !cooldownRef.current && !isProcessing) {
             const barcodeText = result.getText().toUpperCase();
             
@@ -72,25 +92,30 @@ export function BarcodeScanner({ onScan, isProcessing = false, disabled = false 
               }, 3000);
             }
           }
+        } catch (err) {
+          // No barcode found in this frame, continue scanning
         }
-      );
 
-      setCameraReady(true);
-    } catch (err) {
+        // Continue scanning
+        if (readerRef.current) {
+          requestAnimationFrame(decodeLoop);
+        }
+      };
+
+      decodeLoop();
+
+    } catch (err: any) {
       console.error('Scanner error:', err);
-      setError('Failed to access camera. Please ensure camera permissions are granted.');
+      if (err.name === 'NotAllowedError') {
+        setError('Camera access denied. Please allow camera permission and try again.');
+      } else if (err.name === 'NotFoundError') {
+        setError('No camera found on this device.');
+      } else {
+        setError('Failed to access camera. Please ensure camera permissions are granted.');
+      }
       setIsScanning(false);
     }
-  }, [onScan, isProcessing, disabled]);
-
-  const stopScanning = useCallback(() => {
-    if (readerRef.current) {
-      readerRef.current.reset();
-      readerRef.current = null;
-    }
-    setIsScanning(false);
-    setCameraReady(false);
-  }, []);
+  }, [onScan, isProcessing, disabled, isScanning]);
 
   useEffect(() => {
     return () => {
@@ -107,6 +132,7 @@ export function BarcodeScanner({ onScan, isProcessing = false, disabled = false 
           className="w-full h-full object-cover"
           playsInline
           muted
+          autoPlay
         />
         
         {/* Scanning Overlay */}
@@ -152,9 +178,12 @@ export function BarcodeScanner({ onScan, isProcessing = false, disabled = false 
 
         {/* Error state */}
         {error && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-destructive/10">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-destructive/10 p-6">
             <CameraOff className="w-16 h-16 text-destructive" />
-            <p className="text-destructive font-medium text-center px-4">{error}</p>
+            <p className="text-destructive font-medium text-center">{error}</p>
+            <Button variant="outline" size="sm" onClick={() => setError(null)}>
+              Try Again
+            </Button>
           </div>
         )}
       </div>
@@ -166,7 +195,7 @@ export function BarcodeScanner({ onScan, isProcessing = false, disabled = false 
             variant="scan"
             size="xl"
             onClick={startScanning}
-            disabled={disabled}
+            disabled={disabled || !!error}
             className="min-w-48"
           >
             <Camera className="w-5 h-5 mr-2" />
