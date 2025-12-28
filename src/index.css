@@ -2,95 +2,120 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Haramaya University inspired colors - Forest green & warm amber */
+    --background: 45 30% 97%;
+    --foreground: 150 40% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 150 40% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 150 40% 10%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Deep forest green - institutional */
+    --primary: 150 40% 20%;
+    --primary-foreground: 45 30% 97%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Warm amber accent */
+    --secondary: 35 50% 65%;
+    --secondary-foreground: 150 40% 10%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 45 20% 92%;
+    --muted-foreground: 150 20% 40%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    /* Gold accent for highlights */
+    --accent: 40 70% 50%;
+    --accent-foreground: 150 40% 10%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 72% 50%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --success: 142 70% 40%;
+    --success-foreground: 0 0% 100%;
 
-    --radius: 0.5rem;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 10%;
 
-    --sidebar-background: 0 0% 98%;
+    --border: 45 20% 85%;
+    --input: 45 20% 85%;
+    --ring: 150 40% 20%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --radius: 0.75rem;
 
-    --sidebar-primary: 240 5.9% 10%;
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(150 40% 20%), hsl(150 40% 28%));
+    --gradient-accent: linear-gradient(135deg, hsl(40 70% 50%), hsl(35 60% 55%));
+    --gradient-hero: linear-gradient(180deg, hsl(150 40% 20%) 0%, hsl(150 35% 25%) 100%);
 
-    --sidebar-primary-foreground: 0 0% 98%;
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(150 40% 20% / 0.12);
+    --shadow-card: 0 2px 12px -2px hsl(150 40% 20% / 0.08);
+    --shadow-glow: 0 0 30px hsl(40 70% 50% / 0.3);
 
-    --sidebar-accent: 240 4.8% 95.9%;
+    /* Typography */
+    --font-display: 'Playfair Display', serif;
+    --font-body: 'Inter', sans-serif;
 
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 150 40% 18%;
+    --sidebar-foreground: 45 30% 97%;
+    --sidebar-primary: 40 70% 50%;
+    --sidebar-primary-foreground: 150 40% 10%;
+    --sidebar-accent: 150 40% 25%;
+    --sidebar-accent-foreground: 45 30% 97%;
+    --sidebar-border: 150 30% 25%;
+    --sidebar-ring: 40 70% 50%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 150 40% 8%;
+    --foreground: 45 30% 95%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 150 35% 12%;
+    --card-foreground: 45 30% 95%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 150 35% 12%;
+    --popover-foreground: 45 30% 95%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 40 70% 50%;
+    --primary-foreground: 150 40% 10%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 150 30% 20%;
+    --secondary-foreground: 45 30% 95%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 150 25% 18%;
+    --muted-foreground: 45 15% 60%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 40 60% 45%;
+    --accent-foreground: 150 40% 10%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --success: 142 60% 35%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 85% 45%;
+    --warning-foreground: 0 0% 10%;
+
+    --border: 150 25% 20%;
+    --input: 150 25% 20%;
+    --ring: 40 70% 50%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(40 70% 50%), hsl(35 60% 55%));
+    --gradient-hero: linear-gradient(180deg, hsl(150 40% 8%) 0%, hsl(150 35% 12%) 100%);
+
+    --sidebar-background: 150 40% 6%;
+    --sidebar-foreground: 45 30% 95%;
+    --sidebar-primary: 40 70% 50%;
+    --sidebar-primary-foreground: 150 40% 10%;
+    --sidebar-accent: 150 35% 15%;
+    --sidebar-accent-foreground: 45 30% 95%;
+    --sidebar-border: 150 25% 15%;
+    --sidebar-ring: 40 70% 50%;
   }
 }
 
@@ -100,6 +125,98 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: var(--font-body);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+  }
+}
+
+@layer components {
+  .scanner-overlay {
+    @apply absolute inset-0 pointer-events-none;
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--primary) / 0.3) 0%,
+      transparent 20%,
+      transparent 80%,
+      hsl(var(--primary) / 0.3) 100%
+    );
+  }
+
+  .scan-line {
+    @apply absolute left-0 right-0 h-0.5 bg-accent;
+    animation: scan 2s linear infinite;
+    box-shadow: 0 0 10px hsl(var(--accent)), 0 0 20px hsl(var(--accent) / 0.5);
+  }
+
+  @keyframes scan {
+    0%, 100% { top: 10%; }
+    50% { top: 90%; }
+  }
+
+  .status-granted {
+    @apply bg-success text-success-foreground;
+    animation: pulse-success 0.5s ease-out;
+  }
+
+  .status-denied {
+    @apply bg-destructive text-destructive-foreground;
+    animation: shake 0.5s ease-out;
+  }
+
+  @keyframes pulse-success {
+    0% { transform: scale(0.95); opacity: 0.8; }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  .card-elevated {
+    @apply bg-card rounded-xl border border-border;
+    box-shadow: var(--shadow-card);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+
+  .card-elevated:hover {
+    box-shadow: var(--shadow-soft);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary-gradient {
+    background: var(--gradient-primary);
+    @apply text-primary-foreground font-semibold px-6 py-3 rounded-lg;
+    transition: all 0.3s ease;
+  }
+
+  .btn-primary-gradient:hover {
+    box-shadow: var(--shadow-soft);
+    transform: translateY(-1px);
+  }
+
+  .ethiopian-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d4a574' fill-opacity='0.08'%3E%3Cpath d='M30 30l15-15v30l-15-15zm0 0L15 15v30l15-15z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-accent);
+  }
+
+  .glass-effect {
+    @apply backdrop-blur-md bg-card/80 border border-border/50;
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background;
   }
 }
