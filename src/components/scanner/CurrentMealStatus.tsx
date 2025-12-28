@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { getCurrentMealType, getMealWindowLabel, getNextMealWindow } from '@/lib/mealLogic';
 import { formatTime } from '@/lib/ethiopianCalendar';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useMealSettings } from '@/contexts/MealSettingsContext';
 import { MealType } from '@/types';
 
 const mealIcons: Record<MealType, React.ReactNode> = {
@@ -16,8 +17,11 @@ const mealIcons: Record<MealType, React.ReactNode> = {
 
 export function CurrentMealStatus() {
   const { t } = useLanguage();
-  const currentMeal = getCurrentMealType();
-  const nextMeal = getNextMealWindow();
+  const { settings } = useMealSettings();
+  const systemSettings = { mealWindows: settings.mealWindows, lockDurationMinutes: settings.lockDurationMinutes, showEthiopianDate: true, defaultLanguage: 'en' as const };
+  
+  const currentMeal = getCurrentMealType(new Date(), systemSettings);
+  const nextMeal = getNextMealWindow(new Date(), systemSettings);
 
   return (
     <Card variant="glass" className="overflow-hidden">
@@ -41,7 +45,7 @@ export function CurrentMealStatus() {
                   <Badge variant={currentMeal}>{t(currentMeal)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Window: {getMealWindowLabel(currentMeal)}
+                  Window: {getMealWindowLabel(currentMeal, systemSettings)}
                 </p>
               </>
             ) : (
