@@ -1,9 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import {
-  BrowserMultiFormatReader,
-  DecodeHintType,
-  BarcodeFormat,
-} from "@zxing/library";
+import Quagga from "@ericblade/quagga2";
 import { motion, AnimatePresence } from "framer-motion";
 import { Camera, CameraOff, RefreshCw, Zap, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,202 +16,138 @@ export function BarcodeScanner({
   isProcessing = false,
   disabled = false,
 }: BarcodeScannerProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLDivElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [scanConfidence, setScanConfidence] = useState(0);
-  const readerRef = useRef<BrowserMultiFormatReader | null>(null);
   const lastScannedRef = useRef<string>("");
   const cooldownRef = useRef<boolean>(false);
-  const streamRef = useRef<MediaStream | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
+  const confidenceDecayRef = useRef<NodeJS.Timeout | null>(null);
 
   const stopScanning = useCallback(() => {
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
+    try {
+      Quagga.stop();
+      Quagga.offDetected();
+      Quagga.offProcessed();
+    } catch (e) {
+      // Already stopped
     }
-    if (readerRef.current) {
-      readerRef.current.reset();
-      readerRef.current = null;
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
+    if (confidenceDecayRef.current) {
+      clearInterval(confidenceDecayRef.current);
+      confidenceDecayRef.current = null;
     }
     setIsScanning(false);
     setCameraReady(false);
     setScanConfidence(0);
   }, []);
 
-  // Image preprocessing for better barcode detection
-  const preprocessImage = useCallback(
-    (canvas: HTMLCanvasElement, video: HTMLVideoElement) => {
-      const ctx = canvas.getContext("2d", { willReadFrequently: true });
-      if (!ctx) return;
-
-      // Draw current video frame
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-      // Get image data
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imageData.data;
-
-      // Apply contrast enhancement and sharpening for faded barcodes
-      // 1. Increase contrast
-      const contrast = 1.5;
-      const factor = (259 * (contrast + 255)) / (255 * (259 - contrast));
-
-      for (let i = 0; i < data.length; i += 4) {
-        // Convert to grayscale with weighted average
-        const gray =
-          0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-
-        // Apply contrast
-        const enhanced = factor * (gray - 128) + 128;
-        const value = Math.max(0, Math.min(255, enhanced));
-
-        data[i] = value; // R
-        data[i + 1] = value; // G
-        data[i + 2] = value; // B
-      }
-
-      // Apply sharpening kernel for better edge detection
-      const sharpened = new Uint8ClampedArray(data.length);
-      const width = canvas.width;
-      const height = canvas.height;
-
-      // Simple sharpening kernel
-      const kernel = [0, -1, 0, -1, 5, -1, 0, -1, 0];
-
-      for (let y = 1; y < height - 1; y++) {
-        for (let x = 1; x < width - 1; x++) {
-          let sum = 0;
-          for (let ky = -1; ky <= 1; ky++) {
-            for (let kx = -1; kx <= 1; kx++) {
-              const pixel = ((y + ky) * width + (x + kx)) * 4;
-              const weight = kernel[(ky + 1) * 3 + (kx + 1)];
-              sum += data[pixel] * weight;
-            }
-          }
-          const idx = (y * width + x) * 4;
-          const value = Math.max(0, Math.min(255, sum));
-          sharpened[idx] = value;
-          sharpened[idx + 1] = value;
-          sharpened[idx + 2] = value;
-          sharpened[idx + 3] = 255;
-        }
-      }
-
-      // Put enhanced image back
-      for (let i = 0; i < data.length; i++) {
-        data[i] = sharpened[i] || data[i];
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-    },
-    []
-  );
-
   const startScanning = useCallback(async () => {
-    if (!videoRef.current || !canvasRef.current || disabled) return;
+    if (!videoRef.current || disabled) return;
 
     try {
       setError(null);
       setIsScanning(true);
 
-      // Request HIGH RESOLUTION camera for long-distance scanning
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: "environment",
-          width: { ideal: 1920, max: 3840 }, // High resolution
-          height: { ideal: 1080, max: 2160 },
-          aspectRatio: { ideal: 16 / 9 },
-          frameRate: { ideal: 60, min: 30 }, // High frame rate
-          focusMode: "continuous" as any, // Continuous autofocus
-          exposureMode: "continuous" as any, // Auto exposure
-          whiteBalanceMode: "continuous" as any, // Auto white balance
+      // QuaggaJS Configuration - Optimized for Code 128 Student IDs
+      Quagga.init(
+        {
+          inputStream: {
+            type: "LiveStream",
+            target: videoRef.current,
+            constraints: {
+              width: { min: 640, ideal: 1920, max: 3840 },
+              height: { min: 480, ideal: 1080, max: 2160 },
+              aspectRatio: { ideal: 16 / 9 },
+              facingMode: "environment",
+              frameRate: { min: 30, ideal: 60 },
+            },
+            area: {
+              top: "20%",
+              right: "10%",
+              left: "10%",
+              bottom: "20%",
+            },
+          },
+          locator: {
+            patchSize: "medium", // Balance speed vs accuracy
+            halfSample: false, // Full resolution for distance scanning
+          },
+          numOfWorkers: navigator.hardwareConcurrency || 4,
+          frequency: 10, // 10 scans per second
+          decoder: {
+            readers: [
+              "code_128_reader", // PRIMARY - Student ID format
+              "code_39_reader", // Fallback
+              "ean_reader",
+            ],
+            multiple: false,
+          },
+          locate: true, // Enable barcode locator for pre-detection
         },
-      });
+        (err) => {
+          if (err) {
+            console.error("QuaggaJS initialization error:", err);
 
-      streamRef.current = stream;
-      videoRef.current.srcObject = stream;
-
-      await new Promise<void>((resolve) => {
-        if (videoRef.current) {
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current?.play();
-            resolve();
-          };
-        }
-      });
-
-      // Set canvas size to match video
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-
-      setCameraReady(true);
-
-      // Initialize barcode reader with CODE 128 PRIORITY for student IDs
-      const hints = new Map();
-      hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-        BarcodeFormat.CODE_128, // PRIMARY - Student ID format
-        BarcodeFormat.CODE_39,
-        BarcodeFormat.EAN_13,
-        BarcodeFormat.EAN_8,
-        BarcodeFormat.ITF,
-        BarcodeFormat.CODABAR,
-      ]);
-      hints.set(DecodeHintType.TRY_HARDER, true); // Exhaustive search
-      hints.set(DecodeHintType.PURE_BARCODE, false); // Allow imperfect barcodes
-      hints.set(DecodeHintType.ALSO_INVERTED, true); // Try inverted colors
-
-      const reader = new BrowserMultiFormatReader(hints);
-      readerRef.current = reader;
-
-      let consecutiveFailures = 0;
-      const MAX_FAILURES = 5;
-
-      // Multi-pass scanning loop with preprocessing
-      const decodeLoop = async () => {
-        if (!readerRef.current || !videoRef.current || !canvasRef.current)
-          return;
-
-        try {
-          // Method 1: Direct video decode (fastest)
-          let result = null;
-          try {
-            result = await reader.decodeFromVideoElement(videoRef.current);
-          } catch (e) {
-            // Method 2: Preprocessed canvas decode (better for faded barcodes)
-            preprocessImage(canvasRef.current, videoRef.current);
-            try {
-              result = await reader.decodeFromCanvas(canvasRef.current);
-            } catch (e2) {
-              // No barcode found
+            if (err.name === "NotAllowedError") {
+              setError(
+                "Camera access denied. Please allow camera permission and try again."
+              );
+            } else if (err.name === "NotFoundError") {
+              setError("No camera found on this device.");
+            } else {
+              setError("Failed to initialize scanner. Please try again.");
             }
+            setIsScanning(false);
+            return;
           }
 
-          if (result && !cooldownRef.current && !isProcessing) {
-            const barcodeText = result.getText().trim();
+          setCameraReady(true);
+          Quagga.start();
 
-            // Update confidence indicator
-            setScanConfidence(100);
-            consecutiveFailures = 0;
+          // Confidence decay interval
+          confidenceDecayRef.current = setInterval(() => {
+            setScanConfidence((prev) => Math.max(0, prev - 5));
+          }, 300);
+
+          // Detection handler - fires when barcode is successfully detected
+          // MUST be registered AFTER Quagga.init completes
+          Quagga.onDetected((result) => {
+            if (
+              !result ||
+              !result.codeResult ||
+              cooldownRef.current ||
+              isProcessing
+            )
+              return;
+
+            const barcode = result.codeResult.code?.trim();
+            if (!barcode) return;
+
+            // Calculate confidence from quality metrics
+            const quality = result.codeResult.decodedCodes?.filter(
+              (c: any) => c.error !== undefined
+            );
+            const avgError =
+              quality?.reduce(
+                (sum: number, code: any) => sum + (code.error || 0),
+                0
+              ) / (quality?.length || 1);
+            const confidence = Math.round(
+              Math.max(0, Math.min(100, (1 - avgError) * 100))
+            );
+
+            setScanConfidence(confidence);
 
             // Validate barcode format
             if (
-              validateStudentBarcode(barcodeText) &&
-              barcodeText !== lastScannedRef.current
+              validateStudentBarcode(barcode) &&
+              barcode !== lastScannedRef.current
             ) {
-              lastScannedRef.current = barcodeText;
+              lastScannedRef.current = barcode;
               cooldownRef.current = true;
 
-              onScan(barcodeText);
+              onScan(barcode);
 
               // Cooldown for rapid scanning
               setTimeout(() => {
@@ -224,23 +156,19 @@ export function BarcodeScanner({
                 setScanConfidence(0);
               }, 1500);
             }
-          } else {
-            // Gradual confidence decrease
-            consecutiveFailures++;
-            setScanConfidence(Math.max(0, 100 - consecutiveFailures * 5));
-          }
-        } catch (err) {
-          consecutiveFailures++;
-          setScanConfidence(Math.max(0, 100 - consecutiveFailures * 5));
-        }
+          });
 
-        // Continue high-frequency scanning
-        if (readerRef.current) {
-          animationFrameRef.current = requestAnimationFrame(decodeLoop);
+          // Processing handler - fires on each frame for feedback
+          // MUST be registered AFTER Quagga.init completes
+          Quagga.onProcessed((result) => {
+            // Update confidence indicator based on barcode detection progress
+            if (result && result.boxes) {
+              // Barcode area detected but not yet decoded
+              setScanConfidence((prev) => Math.min(70, prev + 10));
+            }
+          });
         }
-      };
-
-      decodeLoop();
+      );
     } catch (err: any) {
       console.error("Scanner error:", err);
       if (err.name === "NotAllowedError") {
@@ -256,7 +184,7 @@ export function BarcodeScanner({
       }
       setIsScanning(false);
     }
-  }, [onScan, isProcessing, disabled, preprocessImage]);
+  }, [onScan, isProcessing, disabled]);
 
   useEffect(() => {
     return () => {
@@ -268,16 +196,14 @@ export function BarcodeScanner({
     <div className="relative w-full max-w-lg mx-auto">
       {/* Scanner Container */}
       <div className="relative aspect-[4/3] bg-foreground/5 rounded-2xl overflow-hidden border-2 border-primary/20">
-        <video
+        {/* QuaggaJS video element */}
+        <div
           ref={videoRef}
-          className="w-full h-full object-cover"
-          playsInline
-          muted
-          autoPlay
-        />
-
-        {/* Hidden canvas for preprocessing */}
-        <canvas ref={canvasRef} className="hidden" />
+          className="w-full h-full"
+          style={{ position: "relative" }}
+        >
+          {/* QuaggaJS canvas will be injected here */}
+        </div>
 
         {/* Scanning Overlay */}
         {isScanning && cameraReady && (
@@ -299,7 +225,7 @@ export function BarcodeScanner({
             </div>
 
             {/* Confidence meter */}
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-full border border-accent/30 flex items-center gap-2">
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-full border border-accent/30 flex items-center gap-2 z-10">
               <Zap className="w-4 h-4 text-accent" />
               <div className="flex items-center gap-2">
                 <div className="w-32 h-2 bg-muted/50 rounded-full overflow-hidden">
@@ -323,10 +249,10 @@ export function BarcodeScanner({
             </div>
 
             {/* Distance guidance */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-lg text-xs font-medium text-center">
+            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-card/90 backdrop-blur-sm px-4 py-2 rounded-lg text-xs font-medium text-center z-10">
               <p className="text-accent">📱 Hold steady • 30-70cm distance</p>
               <p className="text-muted-foreground mt-0.5">
-                Works with faded barcodes
+                QuaggaJS - Optimized for faded barcodes
               </p>
             </div>
           </>
@@ -339,7 +265,7 @@ export function BarcodeScanner({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-foreground/50 flex items-center justify-center backdrop-blur-sm"
+              className="absolute inset-0 bg-foreground/50 flex items-center justify-center backdrop-blur-sm z-20"
             >
               <div className="bg-card rounded-xl p-6 flex flex-col items-center gap-3 shadow-2xl">
                 <RefreshCw className="w-8 h-8 text-accent animate-spin" />
@@ -357,7 +283,7 @@ export function BarcodeScanner({
               Camera not active
             </p>
             <p className="text-xs text-muted-foreground/70 max-w-xs text-center px-4">
-              Enhanced scanner for Code 128 barcodes
+              QuaggaJS - Enhanced Code 128 scanner
             </p>
           </div>
         )}
@@ -412,7 +338,7 @@ export function BarcodeScanner({
           </div>
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-accent" />
-            <span>Code 128 Optimized</span>
+            <span>QuaggaJS Engine</span>
           </div>
           <div className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full bg-warning" />

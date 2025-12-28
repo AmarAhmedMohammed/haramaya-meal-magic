@@ -1,8 +1,8 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
 @layer base {
   :root {
@@ -47,9 +47,21 @@
     --radius: 0.75rem;
 
     /* Custom gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(150 40% 20%), hsl(150 40% 28%));
-    --gradient-accent: linear-gradient(135deg, hsl(40 70% 50%), hsl(35 60% 55%));
-    --gradient-hero: linear-gradient(180deg, hsl(150 40% 20%) 0%, hsl(150 35% 25%) 100%);
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(150 40% 20%),
+      hsl(150 40% 28%)
+    );
+    --gradient-accent: linear-gradient(
+      135deg,
+      hsl(40 70% 50%),
+      hsl(35 60% 55%)
+    );
+    --gradient-hero: linear-gradient(
+      180deg,
+      hsl(150 40% 20%) 0%,
+      hsl(150 35% 25%) 100%
+    );
 
     /* Shadows */
     --shadow-soft: 0 4px 20px -4px hsl(150 40% 20% / 0.12);
@@ -57,8 +69,8 @@
     --shadow-glow: 0 0 30px hsl(40 70% 50% / 0.3);
 
     /* Typography */
-    --font-display: 'Playfair Display', serif;
-    --font-body: 'Inter', sans-serif;
+    --font-display: "Playfair Display", serif;
+    --font-body: "Inter", sans-serif;
 
     --sidebar-background: 150 40% 18%;
     --sidebar-foreground: 45 30% 97%;
@@ -105,8 +117,16 @@
     --input: 150 25% 20%;
     --ring: 40 70% 50%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(40 70% 50%), hsl(35 60% 55%));
-    --gradient-hero: linear-gradient(180deg, hsl(150 40% 8%) 0%, hsl(150 35% 12%) 100%);
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(40 70% 50%),
+      hsl(35 60% 55%)
+    );
+    --gradient-hero: linear-gradient(
+      180deg,
+      hsl(150 40% 8%) 0%,
+      hsl(150 35% 12%) 100%
+    );
 
     --sidebar-background: 150 40% 6%;
     --sidebar-foreground: 45 30% 95%;
@@ -129,7 +149,12 @@
     font-family: var(--font-body);
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-family: var(--font-display);
   }
 }
@@ -153,8 +178,13 @@
   }
 
   @keyframes scan {
-    0%, 100% { top: 10%; }
-    50% { top: 90%; }
+    0%,
+    100% {
+      top: 10%;
+    }
+    50% {
+      top: 90%;
+    }
   }
 
   .status-granted {
@@ -168,15 +198,30 @@
   }
 
   @keyframes pulse-success {
-    0% { transform: scale(0.95); opacity: 0.8; }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+      transform: scale(0.95);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.02);
+    }
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-5px);
+    }
+    75% {
+      transform: translateX(5px);
+    }
   }
 
   .card-elevated {

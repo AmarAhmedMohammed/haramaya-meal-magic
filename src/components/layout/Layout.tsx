@@ -1,35 +1,56 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  ScanLine, 
-  Users, 
-  Building2, 
-  Settings, 
+import React from "react";
+import { Link, useLocation } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+  LayoutDashboard,
+  ScanLine,
+  Users,
+  Building2,
+  Settings,
   LogOut,
   Menu,
   X,
-  Languages
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { cn } from '@/lib/utils';
+  Languages,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { cn } from "@/lib/utils";
 
 interface NavItem {
   icon: React.ReactNode;
-  labelKey: 'dashboard' | 'scanner' | 'students' | 'cafeterias' | 'settings';
+  labelKey: "dashboard" | "scanner" | "students" | "cafeterias" | "settings";
   href: string;
   roles?: string[];
 }
 
 const navItems: NavItem[] = [
-  { icon: <LayoutDashboard className="w-5 h-5" />, labelKey: 'dashboard', href: '/dashboard' },
-  { icon: <ScanLine className="w-5 h-5" />, labelKey: 'scanner', href: '/scanner' },
-  { icon: <Users className="w-5 h-5" />, labelKey: 'students', href: '/students' },
-  { icon: <Building2 className="w-5 h-5" />, labelKey: 'cafeterias', href: '/cafeterias' },
-  { icon: <Settings className="w-5 h-5" />, labelKey: 'settings', href: '/settings', roles: ['super_admin'] },
+  {
+    icon: <LayoutDashboard className="w-5 h-5" />,
+    labelKey: "dashboard",
+    href: "/dashboard",
+  },
+  {
+    icon: <ScanLine className="w-5 h-5" />,
+    labelKey: "scanner",
+    href: "/scanner",
+  },
+  {
+    icon: <Users className="w-5 h-5" />,
+    labelKey: "students",
+    href: "/students",
+  },
+  {
+    icon: <Building2 className="w-5 h-5" />,
+    labelKey: "cafeterias",
+    href: "/cafeterias",
+  },
+  {
+    icon: <Settings className="w-5 h-5" />,
+    labelKey: "settings",
+    href: "/settings",
+    roles: ["super_admin"],
+  },
 ];
 
 interface LayoutProps {
@@ -43,7 +64,20 @@ export function Layout({ children }: LayoutProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
   const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'am' : 'en');
+    // Cycle through: en -> am -> or -> en
+    if (language === "en") {
+      setLanguage("am");
+    } else if (language === "am") {
+      setLanguage("or");
+    } else {
+      setLanguage("en");
+    }
+  };
+
+  const getLanguageDisplay = () => {
+    if (language === "en") return "አማርኛ"; // Show next language
+    if (language === "am") return "Oromiffa"; // Show next language
+    return "English"; // Show next language
   };
 
   return (
@@ -54,10 +88,14 @@ export function Layout({ children }: LayoutProps) {
           {/* Logo */}
           <div className="flex h-20 items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
-              <span className="text-sidebar-primary-foreground font-bold text-xl">H</span>
+              <span className="text-sidebar-primary-foreground font-bold text-xl">
+                H
+              </span>
             </div>
             <div>
-              <h1 className="text-sidebar-foreground font-display font-bold text-lg">Haramaya</h1>
+              <h1 className="text-sidebar-foreground font-display font-bold text-lg">
+                Haramaya
+              </h1>
               <p className="text-sidebar-foreground/70 text-xs">Meal System</p>
             </div>
           </div>
@@ -95,21 +133,21 @@ export function Layout({ children }: LayoutProps) {
                 className="w-full justify-start text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
               >
                 <Languages className="w-5 h-5 mr-3" />
-                {language === 'en' ? 'አማርኛ' : 'English'}
+                {getLanguageDisplay()}
               </Button>
-              
+
               <div className="flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent/30">
                 <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center">
                   <span className="text-sidebar-primary-foreground text-sm font-medium">
-                    {admin?.displayName?.[0] || 'A'}
+                    {admin?.displayName?.[0] || "A"}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    {admin?.displayName || 'Admin'}
+                    {admin?.displayName || "Admin"}
                   </p>
                   <p className="text-xs text-sidebar-foreground/60 truncate">
-                    {admin?.role?.replace('_', ' ')}
+                    {admin?.role?.replace("_", " ")}
                   </p>
                 </div>
               </div>
@@ -121,7 +159,7 @@ export function Layout({ children }: LayoutProps) {
                 className="w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
               >
                 <LogOut className="w-5 h-5 mr-3" />
-                {t('logout')}
+                {t("logout")}
               </Button>
             </div>
           </nav>
@@ -142,7 +180,9 @@ export function Layout({ children }: LayoutProps) {
           <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
             <span className="text-sidebar-primary-foreground font-bold">H</span>
           </div>
-          <span className="text-sidebar-foreground font-display font-bold">Haramaya Meal</span>
+          <span className="text-sidebar-foreground font-display font-bold">
+            Haramaya Meal
+          </span>
         </div>
         <Button
           variant="ghost"
@@ -162,7 +202,10 @@ export function Layout({ children }: LayoutProps) {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-50 lg:hidden"
         >
-          <div className="fixed inset-0 bg-foreground/50" onClick={() => setMobileMenuOpen(false)} />
+          <div
+            className="fixed inset-0 bg-foreground/50"
+            onClick={() => setMobileMenuOpen(false)}
+          />
           <motion.div
             initial={{ x: -280 }}
             animate={{ x: 0 }}
@@ -172,9 +215,13 @@ export function Layout({ children }: LayoutProps) {
             <div className="flex items-center justify-between p-4">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-                  <span className="text-sidebar-primary-foreground font-bold">H</span>
+                  <span className="text-sidebar-primary-foreground font-bold">
+                    H
+                  </span>
                 </div>
-                <span className="text-sidebar-foreground font-display font-bold">Haramaya</span>
+                <span className="text-sidebar-foreground font-display font-bold">
+                  Haramaya
+                </span>
               </div>
               <Button
                 variant="ghost"
@@ -212,9 +259,7 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <main className="lg:pl-64">
-        <div className="px-4 py-6 sm:px-6 lg:px-8">
-          {children}
-        </div>
+        <div className="px-4 py-6 sm:px-6 lg:px-8">{children}</div>
       </main>
     </div>
   );

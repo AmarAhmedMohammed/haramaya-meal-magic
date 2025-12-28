@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Layout } from '@/components/layout/Layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import React, { useState } from "react";
+import { motion } from "framer-motion";
+import { Layout } from "@/components/layout/Layout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -21,21 +21,21 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,30 +45,96 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useLanguage } from '@/contexts/LanguageContext';
-import { useToast } from '@/hooks/use-toast';
-import { Student, CafeStatus } from '@/types';
-import { 
-  Search, 
-  Plus, 
-  Upload, 
-  Download, 
+} from "@/components/ui/alert-dialog";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
+import { Student, CafeStatus } from "@/types";
+import {
+  Search,
+  Plus,
+  Upload,
+  Download,
   Filter,
   MoreHorizontal,
   Edit,
   Trash2,
   User,
-  Eye
-} from 'lucide-react';
+  Eye,
+} from "lucide-react";
+import { ImportExportButtons } from "@/components/students/ImportExportButtons";
 
 // Initial mock data
 const initialStudents: Student[] = [
-  { id: '1', studentId: 'HU2024001', fullName: 'Abebe Kebede', fullNameAmharic: 'አበበ ከበደ', department: 'Computer Science', year: 3, cafeStatus: 'cafe', hostelResident: true, monthlyQuota: null, usedQuota: 0, createdAt: new Date(), updatedAt: new Date() },
-  { id: '2', studentId: 'HU2024002', fullName: 'Sara Tesfaye', fullNameAmharic: 'ሳራ ተስፋዬ', department: 'Engineering', year: 2, cafeStatus: 'cafe', hostelResident: false, monthlyQuota: 60, usedQuota: 45, createdAt: new Date(), updatedAt: new Date() },
-  { id: '3', studentId: 'HU2024003', fullName: 'Dawit Haile', fullNameAmharic: 'ዳዊት ሃይሌ', department: 'Medicine', year: 4, cafeStatus: 'none', hostelResident: true, monthlyQuota: null, usedQuota: 0, createdAt: new Date(), updatedAt: new Date() },
-  { id: '4', studentId: 'HU2024004', fullName: 'Tigist Alemayehu', fullNameAmharic: 'ትግስት አለማየሁ', department: 'Business', year: 1, cafeStatus: 'cafe', hostelResident: false, monthlyQuota: null, usedQuota: 0, createdAt: new Date(), updatedAt: new Date() },
-  { id: '5', studentId: 'HU2024005', fullName: 'Yohannes Bekele', fullNameAmharic: 'ዮሐንስ በቀለ', department: 'Law', year: 3, cafeStatus: 'cafe', hostelResident: true, monthlyQuota: 90, usedQuota: 78, createdAt: new Date(), updatedAt: new Date() },
+  {
+    id: "1",
+    studentId: "HU2024001",
+    fullName: "Abebe Kebede",
+    fullNameAmharic: "አበበ ከበደ",
+    department: "Computer Science",
+    year: 3,
+    cafeStatus: "cafe",
+    hostelResident: true,
+    monthlyQuota: null,
+    usedQuota: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "2",
+    studentId: "HU2024002",
+    fullName: "Sara Tesfaye",
+    fullNameAmharic: "ሳራ ተስፋዬ",
+    department: "Engineering",
+    year: 2,
+    cafeStatus: "cafe",
+    hostelResident: false,
+    monthlyQuota: 60,
+    usedQuota: 45,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "3",
+    studentId: "HU2024003",
+    fullName: "Dawit Haile",
+    fullNameAmharic: "ዳዊት ሃይሌ",
+    department: "Medicine",
+    year: 4,
+    cafeStatus: "none",
+    hostelResident: true,
+    monthlyQuota: null,
+    usedQuota: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "4",
+    studentId: "HU2024004",
+    fullName: "Tigist Alemayehu",
+    fullNameAmharic: "ትግስት አለማየሁ",
+    department: "Business",
+    year: 1,
+    cafeStatus: "cafe",
+    hostelResident: false,
+    monthlyQuota: null,
+    usedQuota: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
+  {
+    id: "5",
+    studentId: "HU2024005",
+    fullName: "Yohannes Bekele",
+    fullNameAmharic: "ዮሐንስ በቀለ",
+    department: "Law",
+    year: 3,
+    cafeStatus: "cafe",
+    hostelResident: true,
+    monthlyQuota: 90,
+    usedQuota: 78,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  },
 ];
 
 interface StudentFormData {
@@ -83,12 +149,12 @@ interface StudentFormData {
 }
 
 const emptyFormData: StudentFormData = {
-  studentId: '',
-  fullName: '',
-  fullNameAmharic: '',
-  department: '',
+  studentId: "",
+  fullName: "",
+  fullNameAmharic: "",
+  department: "",
   year: 1,
-  cafeStatus: 'cafe',
+  cafeStatus: "cafe",
   hostelResident: false,
   monthlyQuota: null,
 };
@@ -96,9 +162,9 @@ const emptyFormData: StudentFormData = {
 export default function Students() {
   const { t, language } = useLanguage();
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [students, setStudents] = useState<Student[]>(initialStudents);
-  
+
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -107,32 +173,33 @@ export default function Students() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [formData, setFormData] = useState<StudentFormData>(emptyFormData);
 
-  const filteredStudents = students.filter(student =>
-    student.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    student.department.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredStudents = students.filter(
+    (student) =>
+      student.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      student.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleInputChange = (field: keyof StudentFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleAddStudent = () => {
     if (!formData.studentId || !formData.fullName || !formData.department) {
       toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields.',
-        variant: 'destructive',
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
       });
       return;
     }
 
     // Check for duplicate student ID
-    if (students.some(s => s.studentId === formData.studentId)) {
+    if (students.some((s) => s.studentId === formData.studentId)) {
       toast({
-        title: 'Duplicate ID',
-        description: 'A student with this ID already exists.',
-        variant: 'destructive',
+        title: "Duplicate ID",
+        description: "A student with this ID already exists.",
+        variant: "destructive",
       });
       return;
     }
@@ -145,12 +212,12 @@ export default function Students() {
       updatedAt: new Date(),
     };
 
-    setStudents(prev => [...prev, newStudent]);
+    setStudents((prev) => [...prev, newStudent]);
     setIsAddDialogOpen(false);
     setFormData(emptyFormData);
-    
+
     toast({
-      title: 'Student Added',
+      title: "Student Added",
       description: `${formData.fullName} has been added successfully.`,
     });
   };
@@ -158,25 +225,27 @@ export default function Students() {
   const handleEditStudent = () => {
     if (!selectedStudent || !formData.fullName || !formData.department) {
       toast({
-        title: 'Validation Error',
-        description: 'Please fill in all required fields.',
-        variant: 'destructive',
+        title: "Validation Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
       });
       return;
     }
 
-    setStudents(prev => prev.map(s => 
-      s.id === selectedStudent.id 
-        ? { ...s, ...formData, updatedAt: new Date() }
-        : s
-    ));
-    
+    setStudents((prev) =>
+      prev.map((s) =>
+        s.id === selectedStudent.id
+          ? { ...s, ...formData, updatedAt: new Date() }
+          : s
+      )
+    );
+
     setIsEditDialogOpen(false);
     setSelectedStudent(null);
     setFormData(emptyFormData);
-    
+
     toast({
-      title: 'Student Updated',
+      title: "Student Updated",
       description: `${formData.fullName}'s information has been updated.`,
     });
   };
@@ -184,14 +253,14 @@ export default function Students() {
   const handleDeleteStudent = () => {
     if (!selectedStudent) return;
 
-    setStudents(prev => prev.filter(s => s.id !== selectedStudent.id));
+    setStudents((prev) => prev.filter((s) => s.id !== selectedStudent.id));
     setIsDeleteDialogOpen(false);
-    
+
     toast({
-      title: 'Student Deleted',
+      title: "Student Deleted",
       description: `${selectedStudent.fullName} has been removed from the system.`,
     });
-    
+
     setSelectedStudent(null);
   };
 
@@ -200,7 +269,7 @@ export default function Students() {
     setFormData({
       studentId: student.studentId,
       fullName: student.fullName,
-      fullNameAmharic: student.fullNameAmharic || '',
+      fullNameAmharic: student.fullNameAmharic || "",
       department: student.department,
       year: student.year,
       cafeStatus: student.cafeStatus,
@@ -231,20 +300,24 @@ export default function Students() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">{t('students')}</h1>
+            <h1 className="text-3xl font-display font-bold text-foreground">
+              {t("students")}
+            </h1>
             <p className="text-muted-foreground mt-1">
               Manage student meal registrations
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="gap-2">
-              <Upload className="w-4 h-4" />
-              {t('import')} CSV
-            </Button>
-            <Button variant="outline" className="gap-2">
-              <Download className="w-4 h-4" />
-              {t('export')}
-            </Button>
+            <ImportExportButtons
+              students={filteredStudents}
+              onImportComplete={() => {
+                toast({
+                  title: "Import Complete",
+                  description:
+                    "Students imported successfully. Refresh to see changes.",
+                });
+              }}
+            />
             <Button variant="hero" className="gap-2" onClick={openAddDialog}>
               <Plus className="w-4 h-4" />
               Add Student
@@ -267,7 +340,7 @@ export default function Students() {
               </div>
               <Button variant="outline" className="gap-2">
                 <Filter className="w-4 h-4" />
-                {t('filter')}
+                {t("filter")}
               </Button>
             </div>
           </CardContent>
@@ -293,7 +366,10 @@ export default function Students() {
                 <TableBody>
                   {filteredStudents.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         No students found
                       </TableCell>
                     </TableRow>
@@ -310,15 +386,19 @@ export default function Students() {
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
                               {student.photoURL ? (
-                                <img src={student.photoURL} alt="" className="w-full h-full rounded-full object-cover" />
+                                <img
+                                  src={student.photoURL}
+                                  alt=""
+                                  className="w-full h-full rounded-full object-cover"
+                                />
                               ) : (
                                 <User className="w-5 h-5 text-muted-foreground" />
                               )}
                             </div>
                             <div>
                               <p className="font-medium text-foreground">
-                                {language === 'am' && student.fullNameAmharic 
-                                  ? student.fullNameAmharic 
+                                {language === "am" && student.fullNameAmharic
+                                  ? student.fullNameAmharic
                                   : student.fullName}
                               </p>
                             </div>
@@ -336,18 +416,30 @@ export default function Students() {
                           <Badge variant="outline">Year {student.year}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={student.cafeStatus === 'cafe' ? 'cafe' : 'none'}>
-                            {student.cafeStatus === 'cafe' ? 'Active' : 'Inactive'}
+                          <Badge
+                            variant={
+                              student.cafeStatus === "cafe" ? "cafe" : "none"
+                            }
+                          >
+                            {student.cafeStatus === "cafe"
+                              ? "Active"
+                              : "Inactive"}
                           </Badge>
                         </TableCell>
                         <TableCell>
                           {student.monthlyQuota ? (
                             <div className="text-sm">
-                              <span className="font-medium">{student.usedQuota}</span>
-                              <span className="text-muted-foreground">/{student.monthlyQuota}</span>
+                              <span className="font-medium">
+                                {student.usedQuota}
+                              </span>
+                              <span className="text-muted-foreground">
+                                /{student.monthlyQuota}
+                              </span>
                             </div>
                           ) : (
-                            <span className="text-muted-foreground">Unlimited</span>
+                            <span className="text-muted-foreground">
+                              Unlimited
+                            </span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -369,16 +461,20 @@ export default function Students() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => openViewDialog(student)}>
+                              <DropdownMenuItem
+                                onClick={() => openViewDialog(student)}
+                              >
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => openEditDialog(student)}>
+                              <DropdownMenuItem
+                                onClick={() => openEditDialog(student)}
+                              >
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit Student
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => openDeleteDialog(student)}
                                 className="text-destructive focus:text-destructive"
                               >
@@ -401,14 +497,16 @@ export default function Students() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-foreground">{students.length}</p>
+              <p className="text-2xl font-bold text-foreground">
+                {students.length}
+              </p>
               <p className="text-sm text-muted-foreground">Total Students</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-success">
-                {students.filter(s => s.cafeStatus === 'cafe').length}
+                {students.filter((s) => s.cafeStatus === "cafe").length}
               </p>
               <p className="text-sm text-muted-foreground">Active</p>
             </CardContent>
@@ -416,7 +514,7 @@ export default function Students() {
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-muted-foreground">
-                {students.filter(s => s.cafeStatus === 'none').length}
+                {students.filter((s) => s.cafeStatus === "none").length}
               </p>
               <p className="text-sm text-muted-foreground">Inactive</p>
             </CardContent>
@@ -424,7 +522,7 @@ export default function Students() {
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-accent">
-                {students.filter(s => s.hostelResident).length}
+                {students.filter((s) => s.hostelResident).length}
               </p>
               <p className="text-sm text-muted-foreground">Hostel Residents</p>
             </CardContent>
@@ -438,7 +536,8 @@ export default function Students() {
           <DialogHeader>
             <DialogTitle>Add New Student</DialogTitle>
             <DialogDescription>
-              Enter the student's information to register them for cafeteria service.
+              Enter the student's information to register them for cafeteria
+              service.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -449,21 +548,25 @@ export default function Students() {
                   id="studentId"
                   placeholder="HU2024XXX"
                   value={formData.studentId}
-                  onChange={(e) => handleInputChange('studentId', e.target.value.toUpperCase())}
+                  onChange={(e) =>
+                    handleInputChange("studentId", e.target.value.toUpperCase())
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="year">Year *</Label>
-                <Select 
-                  value={formData.year.toString()} 
-                  onValueChange={(v) => handleInputChange('year', parseInt(v))}
+                <Select
+                  value={formData.year.toString()}
+                  onValueChange={(v) => handleInputChange("year", parseInt(v))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1, 2, 3, 4, 5, 6].map(y => (
-                      <SelectItem key={y} value={y.toString()}>Year {y}</SelectItem>
+                    {[1, 2, 3, 4, 5, 6].map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        Year {y}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -475,7 +578,7 @@ export default function Students() {
                 id="fullName"
                 placeholder="Abebe Kebede"
                 value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                onChange={(e) => handleInputChange("fullName", e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -484,7 +587,9 @@ export default function Students() {
                 id="fullNameAmharic"
                 placeholder="አበበ ከበደ"
                 value={formData.fullNameAmharic}
-                onChange={(e) => handleInputChange('fullNameAmharic', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("fullNameAmharic", e.target.value)
+                }
               />
             </div>
             <div className="space-y-2">
@@ -493,15 +598,19 @@ export default function Students() {
                 id="department"
                 placeholder="Computer Science"
                 value={formData.department}
-                onChange={(e) => handleInputChange('department', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("department", e.target.value)
+                }
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="cafeStatus">Cafe Status</Label>
-                <Select 
-                  value={formData.cafeStatus} 
-                  onValueChange={(v) => handleInputChange('cafeStatus', v as CafeStatus)}
+                <Select
+                  value={formData.cafeStatus}
+                  onValueChange={(v) =>
+                    handleInputChange("cafeStatus", v as CafeStatus)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -518,8 +627,13 @@ export default function Students() {
                   id="monthlyQuota"
                   type="number"
                   placeholder="Unlimited"
-                  value={formData.monthlyQuota || ''}
-                  onChange={(e) => handleInputChange('monthlyQuota', e.target.value ? parseInt(e.target.value) : null)}
+                  value={formData.monthlyQuota || ""}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "monthlyQuota",
+                      e.target.value ? parseInt(e.target.value) : null
+                    )
+                  }
                 />
               </div>
             </div>
@@ -528,7 +642,9 @@ export default function Students() {
                 type="checkbox"
                 id="hostelResident"
                 checked={formData.hostelResident}
-                onChange={(e) => handleInputChange('hostelResident', e.target.checked)}
+                onChange={(e) =>
+                  handleInputChange("hostelResident", e.target.checked)
+                }
                 className="rounded border-input"
               />
               <Label htmlFor="hostelResident" className="text-sm font-normal">
@@ -569,16 +685,18 @@ export default function Students() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-year">Year *</Label>
-                <Select 
-                  value={formData.year.toString()} 
-                  onValueChange={(v) => handleInputChange('year', parseInt(v))}
+                <Select
+                  value={formData.year.toString()}
+                  onValueChange={(v) => handleInputChange("year", parseInt(v))}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {[1, 2, 3, 4, 5, 6].map(y => (
-                      <SelectItem key={y} value={y.toString()}>Year {y}</SelectItem>
+                    {[1, 2, 3, 4, 5, 6].map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        Year {y}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -589,7 +707,7 @@ export default function Students() {
               <Input
                 id="edit-fullName"
                 value={formData.fullName}
-                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                onChange={(e) => handleInputChange("fullName", e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -597,7 +715,9 @@ export default function Students() {
               <Input
                 id="edit-fullNameAmharic"
                 value={formData.fullNameAmharic}
-                onChange={(e) => handleInputChange('fullNameAmharic', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("fullNameAmharic", e.target.value)
+                }
               />
             </div>
             <div className="space-y-2">
@@ -605,15 +725,19 @@ export default function Students() {
               <Input
                 id="edit-department"
                 value={formData.department}
-                onChange={(e) => handleInputChange('department', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("department", e.target.value)
+                }
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-cafeStatus">Cafe Status</Label>
-                <Select 
-                  value={formData.cafeStatus} 
-                  onValueChange={(v) => handleInputChange('cafeStatus', v as CafeStatus)}
+                <Select
+                  value={formData.cafeStatus}
+                  onValueChange={(v) =>
+                    handleInputChange("cafeStatus", v as CafeStatus)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -630,8 +754,13 @@ export default function Students() {
                   id="edit-monthlyQuota"
                   type="number"
                   placeholder="Unlimited"
-                  value={formData.monthlyQuota || ''}
-                  onChange={(e) => handleInputChange('monthlyQuota', e.target.value ? parseInt(e.target.value) : null)}
+                  value={formData.monthlyQuota || ""}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "monthlyQuota",
+                      e.target.value ? parseInt(e.target.value) : null
+                    )
+                  }
                 />
               </div>
             </div>
@@ -640,16 +769,24 @@ export default function Students() {
                 type="checkbox"
                 id="edit-hostelResident"
                 checked={formData.hostelResident}
-                onChange={(e) => handleInputChange('hostelResident', e.target.checked)}
+                onChange={(e) =>
+                  handleInputChange("hostelResident", e.target.checked)
+                }
                 className="rounded border-input"
               />
-              <Label htmlFor="edit-hostelResident" className="text-sm font-normal">
+              <Label
+                htmlFor="edit-hostelResident"
+                className="text-sm font-normal"
+              >
                 Hostel Resident
               </Label>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button variant="hero" onClick={handleEditStudent}>
@@ -672,9 +809,13 @@ export default function Students() {
                   <User className="w-8 h-8 text-muted-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold">{selectedStudent.fullName}</h3>
+                  <h3 className="text-lg font-semibold">
+                    {selectedStudent.fullName}
+                  </h3>
                   {selectedStudent.fullNameAmharic && (
-                    <p className="text-muted-foreground">{selectedStudent.fullNameAmharic}</p>
+                    <p className="text-muted-foreground">
+                      {selectedStudent.fullNameAmharic}
+                    </p>
                   )}
                 </div>
               </div>
@@ -693,33 +834,47 @@ export default function Students() {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Cafe Status</p>
-                  <Badge variant={selectedStudent.cafeStatus === 'cafe' ? 'cafe' : 'none'}>
-                    {selectedStudent.cafeStatus === 'cafe' ? 'Active' : 'Inactive'}
+                  <Badge
+                    variant={
+                      selectedStudent.cafeStatus === "cafe" ? "cafe" : "none"
+                    }
+                  >
+                    {selectedStudent.cafeStatus === "cafe"
+                      ? "Active"
+                      : "Inactive"}
                   </Badge>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Hostel Resident</p>
-                  <p className="font-medium">{selectedStudent.hostelResident ? 'Yes' : 'No'}</p>
+                  <p className="font-medium">
+                    {selectedStudent.hostelResident ? "Yes" : "No"}
+                  </p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Monthly Quota</p>
                   <p className="font-medium">
-                    {selectedStudent.monthlyQuota 
-                      ? `${selectedStudent.usedQuota}/${selectedStudent.monthlyQuota}` 
-                      : 'Unlimited'}
+                    {selectedStudent.monthlyQuota
+                      ? `${selectedStudent.usedQuota}/${selectedStudent.monthlyQuota}`
+                      : "Unlimited"}
                   </p>
                 </div>
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsViewDialogOpen(false)}
+            >
               Close
             </Button>
-            <Button variant="default" onClick={() => {
-              setIsViewDialogOpen(false);
-              if (selectedStudent) openEditDialog(selectedStudent);
-            }}>
+            <Button
+              variant="default"
+              onClick={() => {
+                setIsViewDialogOpen(false);
+                if (selectedStudent) openEditDialog(selectedStudent);
+              }}
+            >
               <Edit className="w-4 h-4 mr-2" />
               Edit
             </Button>
@@ -728,18 +883,22 @@ export default function Students() {
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Student</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{selectedStudent?.fullName}</strong>? 
-              This action cannot be undone and will remove all their meal records.
+              Are you sure you want to delete{" "}
+              <strong>{selectedStudent?.fullName}</strong>? This action cannot
+              be undone and will remove all their meal records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handleDeleteStudent}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
