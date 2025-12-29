@@ -5,12 +5,14 @@ import {
   LayoutDashboard,
   ScanLine,
   Users,
-  Building2,
   Settings,
   LogOut,
   Menu,
   X,
   Languages,
+  UserPlus,
+  CreditCard,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,39 +21,64 @@ import { cn } from "@/lib/utils";
 
 interface NavItem {
   icon: React.ReactNode;
-  labelKey: "dashboard" | "scanner" | "students" | "cafeterias" | "settings";
+  label: string;
   href: string;
   roles?: string[];
 }
 
-const navItems: NavItem[] = [
+const mainNavItems: NavItem[] = [
   {
     icon: <LayoutDashboard className="w-5 h-5" />,
-    labelKey: "dashboard",
+    label: "Dashboard",
     href: "/dashboard",
   },
   {
     icon: <ScanLine className="w-5 h-5" />,
-    labelKey: "scanner",
+    label: "Scanner",
     href: "/scanner",
   },
   {
     icon: <Users className="w-5 h-5" />,
-    labelKey: "students",
+    label: "Students",
     href: "/students",
   },
   {
-    icon: <Building2 className="w-5 h-5" />,
-    labelKey: "cafeterias",
-    href: "/cafeterias",
-  },
-  {
     icon: <Settings className="w-5 h-5" />,
-    labelKey: "settings",
+    label: "Settings",
     href: "/settings",
     roles: ["super_admin"],
   },
 ];
+
+const adminNavItems: NavItem[] = [
+  {
+    icon: <UserPlus className="w-5 h-5" />,
+    label: "Register Student",
+    href: "/admin/register-student",
+    roles: ["super_admin", "registrar_admin"],
+  },
+  {
+    icon: <CreditCard className="w-5 h-5" />,
+    label: "ID Cards",
+    href: "/admin/id-cards",
+    roles: ["super_admin", "registrar_admin"],
+  },
+  {
+    icon: <Shield className="w-5 h-5" />,
+    label: "Manage Admins",
+    href: "/admin/manage",
+    roles: ["super_admin"],
+  },
+];
+
+// Filter nav items by role
+function filterByRole(items: NavItem[], admin: any): NavItem[] {
+  return items.filter(item => {
+    if (!item.roles) return true;
+    if (!admin) return false;
+    return item.roles.includes(admin.role);
+  });
+}
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -103,7 +130,8 @@ export function Layout({ children }: LayoutProps) {
           {/* Navigation */}
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-2">
-              {navItems.map((item) => {
+              {/* Main Nav Items */}
+              {filterByRole(mainNavItems, admin).map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
                   <li key={item.href}>
@@ -117,11 +145,41 @@ export function Layout({ children }: LayoutProps) {
                       )}
                     >
                       {item.icon}
-                      {t(item.labelKey)}
+                      {item.label}
                     </Link>
                   </li>
                 );
               })}
+
+              {/* Admin Section */}
+              {filterByRole(adminNavItems, admin).length > 0 && (
+                <>
+                  <li className="mt-4">
+                    <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 mb-2">
+                      Admin
+                    </p>
+                  </li>
+                  {filterByRole(adminNavItems, admin).map((item) => {
+                    const isActive = location.pathname === item.href;
+                    return (
+                      <li key={item.href}>
+                        <Link
+                          to={item.href}
+                          className={cn(
+                            "group flex gap-x-3 rounded-lg p-3 text-sm font-medium transition-all duration-200",
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                          )}
+                        >
+                          {item.icon}
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </>
+              )}
             </ul>
 
             {/* User section */}
@@ -233,7 +291,7 @@ export function Layout({ children }: LayoutProps) {
               </Button>
             </div>
             <nav className="px-4 py-2">
-              {navItems.map((item) => {
+              {filterByRole(mainNavItems, admin).map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
                   <Link
@@ -248,10 +306,38 @@ export function Layout({ children }: LayoutProps) {
                     )}
                   >
                     {item.icon}
-                    {t(item.labelKey)}
+                    {item.label}
                   </Link>
                 );
               })}
+
+              {/* Admin Section */}
+              {filterByRole(adminNavItems, admin).length > 0 && (
+                <>
+                  <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 mt-4 mb-2">
+                    Admin
+                  </p>
+                  {filterByRole(adminNavItems, admin).map((item) => {
+                    const isActive = location.pathname === item.href;
+                    return (
+                      <Link
+                        key={item.href}
+                        to={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={cn(
+                          "flex gap-x-3 rounded-lg p-3 text-sm font-medium mb-1",
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
+                        )}
+                      >
+                        {item.icon}
+                        {item.label}
+                      </Link>
+                    );
+                  })}
+                </>
+              )}
             </nav>
           </motion.div>
         </motion.div>
