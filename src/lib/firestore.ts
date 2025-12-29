@@ -75,15 +75,27 @@ export async function getStudent(studentId: string): Promise<Student | null> {
       const data = studentSnap.data();
       return {
         id: studentSnap.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        studentId: data.studentId || studentSnap.id,
+        fullName: data.fullName || '',
+        fullNameAmharic: data.fullNameAmharic,
+        department: data.department || '',
+        year: data.year || 1,
+        photoURL: data.photoURL,
+        cafeStatus: data.cafeStatus || 'none',
+        cafeteriaType: data.cafeteriaType || 'christian',
+        hostelResident: data.hostelResident || false,
+        monthlyQuota: data.monthlyQuota ?? null,
+        usedQuota: data.usedQuota || 0,
+        allowedCafeterias: data.allowedCafeterias,
         lastMeal: data.lastMeal
           ? {
               ...data.lastMeal,
               timestamp: data.lastMeal.timestamp?.toDate() || new Date(),
             }
-          : null,
+          : undefined,
+        notes: data.notes,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
       } as Student;
     }
     return null;
@@ -102,15 +114,27 @@ export async function getAllStudents(): Promise<Student[]> {
       const data = doc.data();
       return {
         id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        studentId: data.studentId || doc.id,
+        fullName: data.fullName || '',
+        fullNameAmharic: data.fullNameAmharic,
+        department: data.department || '',
+        year: data.year || 1,
+        photoURL: data.photoURL,
+        cafeStatus: data.cafeStatus || 'none',
+        cafeteriaType: data.cafeteriaType || 'christian',
+        hostelResident: data.hostelResident || false,
+        monthlyQuota: data.monthlyQuota ?? null,
+        usedQuota: data.usedQuota || 0,
+        allowedCafeterias: data.allowedCafeterias,
         lastMeal: data.lastMeal
           ? {
               ...data.lastMeal,
               timestamp: data.lastMeal.timestamp?.toDate() || new Date(),
             }
-          : null,
+          : undefined,
+        notes: data.notes,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
       } as Student;
     });
   } catch (error) {
@@ -128,7 +152,19 @@ export async function searchStudents(searchTerm: string): Promise<Student[]> {
       const data = doc.data();
       return {
         id: doc.id,
-        ...data,
+        studentId: data.studentId || doc.id,
+        fullName: data.fullName || '',
+        fullNameAmharic: data.fullNameAmharic,
+        department: data.department || '',
+        year: data.year || 1,
+        photoURL: data.photoURL,
+        cafeStatus: data.cafeStatus || 'none',
+        cafeteriaType: data.cafeteriaType || 'christian',
+        hostelResident: data.hostelResident || false,
+        monthlyQuota: data.monthlyQuota ?? null,
+        usedQuota: data.usedQuota || 0,
+        allowedCafeterias: data.allowedCafeterias,
+        notes: data.notes,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
       } as Student;
@@ -153,14 +189,12 @@ export async function searchStudents(searchTerm: string): Promise<Student[]> {
 // =============================================
 
 export async function createCafeteria(
-  cafeteriaData: Omit<Cafeteria, "id" | "createdAt" | "updatedAt">
+  cafeteriaData: Omit<Cafeteria, "id">
 ) {
   try {
     const cafeteriaRef = doc(db, "cafeterias", cafeteriaData.cafeteriaId);
     const cafeteriaDoc = {
       ...cafeteriaData,
-      createdAt: Timestamp.now(),
-      updatedAt: Timestamp.now(),
     };
     await setDoc(cafeteriaRef, cafeteriaDoc);
     return { success: true, id: cafeteriaData.cafeteriaId };
@@ -178,7 +212,6 @@ export async function updateCafeteria(
     const cafeteriaRef = doc(db, "cafeterias", cafeteriaId);
     await updateDoc(cafeteriaRef, {
       ...updates,
-      updatedAt: Timestamp.now(),
     });
     return { success: true };
   } catch (error) {
@@ -196,9 +229,17 @@ export async function getAllCafeterias(): Promise<Cafeteria[]> {
       const data = doc.data();
       return {
         id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        cafeteriaId: data.cafeteriaId || doc.id,
+        cafeteriaType: data.cafeteriaType || 'christian',
+        name: data.name || '',
+        nameAmharic: data.nameAmharic,
+        location: data.location || '',
+        openHours: data.openHours || {
+          breakfast: { start: '06:00', end: '09:00' },
+          lunch: { start: '11:30', end: '14:00' },
+          dinner: { start: '17:30', end: '20:00' },
+        },
+        isActive: data.isActive ?? true,
       } as Cafeteria;
     });
   } catch (error) {
@@ -219,8 +260,14 @@ export async function getMealSettings(): Promise<SystemSettings | null> {
     if (settingsSnap.exists()) {
       const data = settingsSnap.data();
       return {
-        ...data,
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        mealWindows: data.mealWindows || {
+          breakfast: { start: '06:00', end: '09:00' },
+          lunch: { start: '11:30', end: '14:00' },
+          dinner: { start: '17:30', end: '20:00' },
+        },
+        lockDurationMinutes: data.lockDurationMinutes || 180,
+        showEthiopianDate: data.showEthiopianDate ?? true,
+        defaultLanguage: data.defaultLanguage || 'en',
       } as SystemSettings;
     }
     return null;
@@ -304,8 +351,18 @@ export async function getMealLogs(filters?: {
       const data = doc.data();
       return {
         id: doc.id,
-        ...data,
+        studentId: data.studentId || '',
+        studentName: data.studentName || '',
+        mealType: data.mealType || 'lunch',
+        cafeteriaId: data.cafeteriaId || '',
+        cafeteriaName: data.cafeteriaName || '',
         timestamp: data.timestamp?.toDate() || new Date(),
+        result: data.result || 'denied',
+        reason: data.reason,
+        cashierId: data.cashierId,
+        isOverride: data.isOverride,
+        overrideReason: data.overrideReason,
+        synced: data.synced ?? true,
       } as MealLog;
     });
 
@@ -332,15 +389,27 @@ export function subscribeToStudents(callback: (students: Student[]) => void) {
       const data = doc.data();
       return {
         id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        studentId: data.studentId || doc.id,
+        fullName: data.fullName || '',
+        fullNameAmharic: data.fullNameAmharic,
+        department: data.department || '',
+        year: data.year || 1,
+        photoURL: data.photoURL,
+        cafeStatus: data.cafeStatus || 'none',
+        cafeteriaType: data.cafeteriaType || 'christian',
+        hostelResident: data.hostelResident || false,
+        monthlyQuota: data.monthlyQuota ?? null,
+        usedQuota: data.usedQuota || 0,
+        allowedCafeterias: data.allowedCafeterias,
         lastMeal: data.lastMeal
           ? {
               ...data.lastMeal,
               timestamp: data.lastMeal.timestamp?.toDate() || new Date(),
             }
-          : null,
+          : undefined,
+        notes: data.notes,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
       } as Student;
     });
     callback(students);
@@ -356,8 +425,14 @@ export function subscribeToMealSettings(
     if (snapshot.exists()) {
       const data = snapshot.data();
       callback({
-        ...data,
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        mealWindows: data.mealWindows || {
+          breakfast: { start: '06:00', end: '09:00' },
+          lunch: { start: '11:30', end: '14:00' },
+          dinner: { start: '17:30', end: '20:00' },
+        },
+        lockDurationMinutes: data.lockDurationMinutes || 180,
+        showEthiopianDate: data.showEthiopianDate ?? true,
+        defaultLanguage: data.defaultLanguage || 'en',
       } as SystemSettings);
     } else {
       callback(null);
@@ -375,11 +450,85 @@ export function subscribeToCafeterias(
       const data = doc.data();
       return {
         id: doc.id,
-        ...data,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
+        cafeteriaId: data.cafeteriaId || doc.id,
+        cafeteriaType: data.cafeteriaType || 'christian',
+        name: data.name || '',
+        nameAmharic: data.nameAmharic,
+        location: data.location || '',
+        openHours: data.openHours || {
+          breakfast: { start: '06:00', end: '09:00' },
+          lunch: { start: '11:30', end: '14:00' },
+          dinner: { start: '17:30', end: '20:00' },
+        },
+        isActive: data.isActive ?? true,
       } as Cafeteria;
     });
     callback(cafeterias);
   });
+}
+
+export function subscribeToMealLogs(
+  callback: (logs: MealLog[]) => void,
+  filters?: { cafeteriaId?: string; limit?: number }
+) {
+  const logsRef = collection(db, "mealLogs");
+  const constraints: QueryConstraint[] = [];
+
+  if (filters?.cafeteriaId) {
+    constraints.push(where("cafeteriaId", "==", filters.cafeteriaId));
+  }
+
+  constraints.push(orderBy("timestamp", "desc"));
+
+  const q = query(logsRef, ...constraints);
+
+  return onSnapshot(q, (snapshot) => {
+    let logs = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        studentId: data.studentId || '',
+        studentName: data.studentName || '',
+        mealType: data.mealType || 'lunch',
+        cafeteriaId: data.cafeteriaId || '',
+        cafeteriaName: data.cafeteriaName || '',
+        timestamp: data.timestamp?.toDate() || new Date(),
+        result: data.result || 'denied',
+        reason: data.reason,
+        cashierId: data.cashierId,
+        isOverride: data.isOverride,
+        overrideReason: data.overrideReason,
+        synced: data.synced ?? true,
+      } as MealLog;
+    });
+
+    if (filters?.limit) {
+      logs = logs.slice(0, filters.limit);
+    }
+
+    callback(logs);
+  });
+}
+
+// Update student's last meal after successful scan
+export async function updateStudentLastMeal(
+  studentId: string,
+  mealType: string,
+  cafeteriaId: string
+) {
+  try {
+    const studentRef = doc(db, "students", studentId);
+    await updateDoc(studentRef, {
+      lastMeal: {
+        mealType,
+        timestamp: Timestamp.now(),
+        cafeteriaId,
+      },
+      updatedAt: Timestamp.now(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating student last meal:", error);
+    throw error;
+  }
 }

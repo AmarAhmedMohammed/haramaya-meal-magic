@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,95 +47,23 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Student, CafeStatus } from "@/types";
+import { Student, CafeStatus, CafeteriaType } from "@/types";
+import { subscribeToStudents, createStudent, updateStudent, deleteStudent } from "@/lib/firestore";
+import { getCafeteriaTypeLabel } from "@/lib/mealLogic";
 import {
   Search,
   Plus,
-  Upload,
-  Download,
   Filter,
   MoreHorizontal,
   Edit,
   Trash2,
   User,
   Eye,
+  ShieldCheck,
 } from "lucide-react";
 import { ImportExportButtons } from "@/components/students/ImportExportButtons";
-
-// Initial mock data
-const initialStudents: Student[] = [
-  {
-    id: "1",
-    studentId: "HU2024001",
-    fullName: "Abebe Kebede",
-    fullNameAmharic: "አበበ ከበደ",
-    department: "Computer Science",
-    year: 3,
-    cafeStatus: "cafe",
-    hostelResident: true,
-    monthlyQuota: null,
-    usedQuota: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "2",
-    studentId: "HU2024002",
-    fullName: "Sara Tesfaye",
-    fullNameAmharic: "ሳራ ተስፋዬ",
-    department: "Engineering",
-    year: 2,
-    cafeStatus: "cafe",
-    hostelResident: false,
-    monthlyQuota: 60,
-    usedQuota: 45,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "3",
-    studentId: "HU2024003",
-    fullName: "Dawit Haile",
-    fullNameAmharic: "ዳዊት ሃይሌ",
-    department: "Medicine",
-    year: 4,
-    cafeStatus: "none",
-    hostelResident: true,
-    monthlyQuota: null,
-    usedQuota: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "4",
-    studentId: "HU2024004",
-    fullName: "Tigist Alemayehu",
-    fullNameAmharic: "ትግስት አለማየሁ",
-    department: "Business",
-    year: 1,
-    cafeStatus: "cafe",
-    hostelResident: false,
-    monthlyQuota: null,
-    usedQuota: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  {
-    id: "5",
-    studentId: "HU2024005",
-    fullName: "Yohannes Bekele",
-    fullNameAmharic: "ዮሐንስ በቀለ",
-    department: "Law",
-    year: 3,
-    cafeStatus: "cafe",
-    hostelResident: true,
-    monthlyQuota: 90,
-    usedQuota: 78,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-];
 
 interface StudentFormData {
   studentId: string;
@@ -144,6 +72,7 @@ interface StudentFormData {
   department: string;
   year: number;
   cafeStatus: CafeStatus;
+  cafeteriaType: CafeteriaType;
   hostelResident: boolean;
   monthlyQuota: number | null;
 }
@@ -155,15 +84,21 @@ const emptyFormData: StudentFormData = {
   department: "",
   year: 1,
   cafeStatus: "cafe",
+  cafeteriaType: "christian",
   hostelResident: false,
   monthlyQuota: null,
 };
 
 export default function Students() {
   const { t, language } = useLanguage();
+  const { admin } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Check if user is admin
+  const isAdmin = admin?.role === 'super_admin' || admin?.role === 'registrar_admin';
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -172,6 +107,16 @@ export default function Students() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [formData, setFormData] = useState<StudentFormData>(emptyFormData);
+
+  // Subscribe to real-time student updates
+  useEffect(() => {
+    const unsubscribe = subscribeToStudents((updatedStudents) => {
+      setStudents(updatedStudents);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const filteredStudents = students.filter(
     (student) =>
@@ -184,7 +129,7 @@ export default function Students() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleAddStudent = () => {
+  const handleAddStudent = async () => {
     if (!formData.studentId || !formData.fullName || !formData.department) {
       toast({
         title: "Validation Error",
@@ -204,25 +149,37 @@ export default function Students() {
       return;
     }
 
-    const newStudent: Student = {
-      id: Date.now().toString(),
-      ...formData,
-      usedQuota: 0,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    try {
+      await createStudent({
+        studentId: formData.studentId,
+        fullName: formData.fullName,
+        fullNameAmharic: formData.fullNameAmharic,
+        department: formData.department,
+        year: formData.year,
+        cafeStatus: formData.cafeStatus,
+        cafeteriaType: formData.cafeteriaType,
+        hostelResident: formData.hostelResident,
+        monthlyQuota: formData.monthlyQuota,
+        usedQuota: 0,
+      });
 
-    setStudents((prev) => [...prev, newStudent]);
-    setIsAddDialogOpen(false);
-    setFormData(emptyFormData);
+      setIsAddDialogOpen(false);
+      setFormData(emptyFormData);
 
-    toast({
-      title: "Student Added",
-      description: `${formData.fullName} has been added successfully.`,
-    });
+      toast({
+        title: "Student Added",
+        description: `${formData.fullName} has been added successfully.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add student. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleEditStudent = () => {
+  const handleEditStudent = async () => {
     if (!selectedStudent || !formData.fullName || !formData.department) {
       toast({
         title: "Validation Error",
@@ -232,36 +189,55 @@ export default function Students() {
       return;
     }
 
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === selectedStudent.id
-          ? { ...s, ...formData, updatedAt: new Date() }
-          : s
-      )
-    );
+    try {
+      await updateStudent(selectedStudent.studentId, {
+        fullName: formData.fullName,
+        fullNameAmharic: formData.fullNameAmharic,
+        department: formData.department,
+        year: formData.year,
+        cafeStatus: formData.cafeStatus,
+        cafeteriaType: formData.cafeteriaType,
+        hostelResident: formData.hostelResident,
+        monthlyQuota: formData.monthlyQuota,
+      });
 
-    setIsEditDialogOpen(false);
-    setSelectedStudent(null);
-    setFormData(emptyFormData);
+      setIsEditDialogOpen(false);
+      setSelectedStudent(null);
+      setFormData(emptyFormData);
 
-    toast({
-      title: "Student Updated",
-      description: `${formData.fullName}'s information has been updated.`,
-    });
+      toast({
+        title: "Student Updated",
+        description: `${formData.fullName}'s information has been updated.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update student. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteStudent = () => {
+  const handleDeleteStudent = async () => {
     if (!selectedStudent) return;
 
-    setStudents((prev) => prev.filter((s) => s.id !== selectedStudent.id));
-    setIsDeleteDialogOpen(false);
+    try {
+      await deleteStudent(selectedStudent.studentId);
+      setIsDeleteDialogOpen(false);
 
-    toast({
-      title: "Student Deleted",
-      description: `${selectedStudent.fullName} has been removed from the system.`,
-    });
+      toast({
+        title: "Student Deleted",
+        description: `${selectedStudent.fullName} has been removed from the system.`,
+      });
 
-    setSelectedStudent(null);
+      setSelectedStudent(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete student. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const openEditDialog = (student: Student) => {
@@ -273,6 +249,7 @@ export default function Students() {
       department: student.department,
       year: student.year,
       cafeStatus: student.cafeStatus,
+      cafeteriaType: student.cafeteriaType,
       hostelResident: student.hostelResident,
       monthlyQuota: student.monthlyQuota,
     });
@@ -294,6 +271,19 @@ export default function Students() {
     setIsAddDialogOpen(true);
   };
 
+  const getCafeteriaTypeBadgeVariant = (type: CafeteriaType) => {
+    switch (type) {
+      case 'muslim':
+        return 'secondary';
+      case 'christian':
+        return 'outline';
+      case 'fresh':
+        return 'default';
+      default:
+        return 'outline';
+    }
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -304,24 +294,33 @@ export default function Students() {
               {t("students")}
             </h1>
             <p className="text-muted-foreground mt-1">
-              Manage student meal registrations
+              {isAdmin ? "Manage student meal registrations" : "View student meal registrations"}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <ImportExportButtons
-              students={filteredStudents}
-              onImportComplete={() => {
-                toast({
-                  title: "Import Complete",
-                  description:
-                    "Students imported successfully. Refresh to see changes.",
-                });
-              }}
-            />
-            <Button variant="hero" className="gap-2" onClick={openAddDialog}>
-              <Plus className="w-4 h-4" />
-              Add Student
-            </Button>
+            {isAdmin && (
+              <>
+                <ImportExportButtons
+                  students={filteredStudents}
+                  onImportComplete={() => {
+                    toast({
+                      title: "Import Complete",
+                      description: "Students imported successfully.",
+                    });
+                  }}
+                />
+                <Button variant="hero" className="gap-2" onClick={openAddDialog}>
+                  <Plus className="w-4 h-4" />
+                  Add Student
+                </Button>
+              </>
+            )}
+            {!isAdmin && (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm">
+                <ShieldCheck className="w-4 h-4" />
+                View Only Mode
+              </div>
+            )}
           </div>
         </div>
 
@@ -357,14 +356,20 @@ export default function Students() {
                     <TableHead>ID</TableHead>
                     <TableHead>Department</TableHead>
                     <TableHead>Year</TableHead>
+                    <TableHead>Cafeteria</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Quota</TableHead>
-                    <TableHead>Hostel</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredStudents.length === 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        Loading students...
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredStudents.length === 0 ? (
                     <TableRow>
                       <TableCell
                         colSpan={8}
@@ -416,6 +421,11 @@ export default function Students() {
                           <Badge variant="outline">Year {student.year}</Badge>
                         </TableCell>
                         <TableCell>
+                          <Badge variant={getCafeteriaTypeBadgeVariant(student.cafeteriaType)}>
+                            {getCafeteriaTypeLabel(student.cafeteriaType)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
                           <Badge
                             variant={
                               student.cafeStatus === "cafe" ? "cafe" : "none"
@@ -443,13 +453,6 @@ export default function Students() {
                           )}
                         </TableCell>
                         <TableCell>
-                          {student.hostelResident ? (
-                            <Badge variant="secondary">Yes</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">No</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -467,20 +470,24 @@ export default function Students() {
                                 <Eye className="w-4 h-4 mr-2" />
                                 View Details
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => openEditDialog(student)}
-                              >
-                                <Edit className="w-4 h-4 mr-2" />
-                                Edit Student
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onClick={() => openDeleteDialog(student)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Delete Student
-                              </DropdownMenuItem>
+                              {isAdmin && (
+                                <>
+                                  <DropdownMenuItem
+                                    onClick={() => openEditDialog(student)}
+                                  >
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Edit Student
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => openDeleteDialog(student)}
+                                    className="text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Delete Student
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -513,400 +520,411 @@ export default function Students() {
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-muted-foreground">
-                {students.filter((s) => s.cafeStatus === "none").length}
+              <p className="text-2xl font-bold text-foreground">
+                {students.filter((s) => s.cafeteriaType === "muslim").length}
               </p>
-              <p className="text-sm text-muted-foreground">Inactive</p>
+              <p className="text-sm text-muted-foreground">Muslim Cafe</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-accent">
-                {students.filter((s) => s.hostelResident).length}
+              <p className="text-2xl font-bold text-foreground">
+                {students.filter((s) => s.cafeteriaType === "fresh").length}
               </p>
-              <p className="text-sm text-muted-foreground">Hostel Residents</p>
+              <p className="text-sm text-muted-foreground">Freshman Cafe</p>
             </CardContent>
           </Card>
         </div>
-      </div>
 
-      {/* Add Student Dialog */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add New Student</DialogTitle>
-            <DialogDescription>
-              Enter the student's information to register them for cafeteria
-              service.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="studentId">Student ID *</Label>
-                <Input
-                  id="studentId"
-                  placeholder="HU2024XXX"
-                  value={formData.studentId}
-                  onChange={(e) =>
-                    handleInputChange("studentId", e.target.value.toUpperCase())
-                  }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="year">Year *</Label>
-                <Select
-                  value={formData.year.toString()}
-                  onValueChange={(v) => handleInputChange("year", parseInt(v))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6].map((y) => (
-                      <SelectItem key={y} value={y.toString()}>
-                        Year {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name (English) *</Label>
-              <Input
-                id="fullName"
-                placeholder="Abebe Kebede"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange("fullName", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="fullNameAmharic">Full Name (Amharic)</Label>
-              <Input
-                id="fullNameAmharic"
-                placeholder="አበበ ከበደ"
-                value={formData.fullNameAmharic}
-                onChange={(e) =>
-                  handleInputChange("fullNameAmharic", e.target.value)
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="department">Department *</Label>
-              <Input
-                id="department"
-                placeholder="Computer Science"
-                value={formData.department}
-                onChange={(e) =>
-                  handleInputChange("department", e.target.value)
-                }
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="cafeStatus">Cafe Status</Label>
-                <Select
-                  value={formData.cafeStatus}
-                  onValueChange={(v) =>
-                    handleInputChange("cafeStatus", v as CafeStatus)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cafe">Active (Cafe)</SelectItem>
-                    <SelectItem value="none">Inactive (None)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="monthlyQuota">Monthly Quota</Label>
-                <Input
-                  id="monthlyQuota"
-                  type="number"
-                  placeholder="Unlimited"
-                  value={formData.monthlyQuota || ""}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "monthlyQuota",
-                      e.target.value ? parseInt(e.target.value) : null
-                    )
-                  }
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="hostelResident"
-                checked={formData.hostelResident}
-                onChange={(e) =>
-                  handleInputChange("hostelResident", e.target.checked)
-                }
-                className="rounded border-input"
-              />
-              <Label htmlFor="hostelResident" className="text-sm font-normal">
-                Hostel Resident
-              </Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button variant="hero" onClick={handleAddStudent}>
-              Add Student
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Student Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Edit Student</DialogTitle>
-            <DialogDescription>
-              Update the student's information.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-studentId">Student ID</Label>
-                <Input
-                  id="edit-studentId"
-                  value={formData.studentId}
-                  disabled
-                  className="bg-muted"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-year">Year *</Label>
-                <Select
-                  value={formData.year.toString()}
-                  onValueChange={(v) => handleInputChange("year", parseInt(v))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6].map((y) => (
-                      <SelectItem key={y} value={y.toString()}>
-                        Year {y}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-fullName">Full Name (English) *</Label>
-              <Input
-                id="edit-fullName"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange("fullName", e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-fullNameAmharic">Full Name (Amharic)</Label>
-              <Input
-                id="edit-fullNameAmharic"
-                value={formData.fullNameAmharic}
-                onChange={(e) =>
-                  handleInputChange("fullNameAmharic", e.target.value)
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-department">Department *</Label>
-              <Input
-                id="edit-department"
-                value={formData.department}
-                onChange={(e) =>
-                  handleInputChange("department", e.target.value)
-                }
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-cafeStatus">Cafe Status</Label>
-                <Select
-                  value={formData.cafeStatus}
-                  onValueChange={(v) =>
-                    handleInputChange("cafeStatus", v as CafeStatus)
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cafe">Active (Cafe)</SelectItem>
-                    <SelectItem value="none">Inactive (None)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-monthlyQuota">Monthly Quota</Label>
-                <Input
-                  id="edit-monthlyQuota"
-                  type="number"
-                  placeholder="Unlimited"
-                  value={formData.monthlyQuota || ""}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "monthlyQuota",
-                      e.target.value ? parseInt(e.target.value) : null
-                    )
-                  }
-                />
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="edit-hostelResident"
-                checked={formData.hostelResident}
-                onChange={(e) =>
-                  handleInputChange("hostelResident", e.target.checked)
-                }
-                className="rounded border-input"
-              />
-              <Label
-                htmlFor="edit-hostelResident"
-                className="text-sm font-normal"
-              >
-                Hostel Resident
-              </Label>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="hero" onClick={handleEditStudent}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* View Student Dialog */}
-      <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Student Details</DialogTitle>
-          </DialogHeader>
-          {selectedStudent && (
-            <div className="space-y-4 py-4">
-              <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-                  <User className="w-8 h-8 text-muted-foreground" />
+        {/* Add Student Dialog - Only for Admin */}
+        {isAdmin && (
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Add New Student</DialogTitle>
+                <DialogDescription>
+                  Enter the student information to register them for cafeteria
+                  services.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-2">
+                  <Label htmlFor="studentId">Student ID (Barcode) *</Label>
+                  <Input
+                    id="studentId"
+                    placeholder="UGPR0680/16"
+                    value={formData.studentId}
+                    onChange={(e) =>
+                      handleInputChange("studentId", e.target.value.toUpperCase())
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Enter the ID from the student's barcode card
+                  </p>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold">
-                    {selectedStudent.fullName}
-                  </h3>
-                  {selectedStudent.fullNameAmharic && (
-                    <p className="text-muted-foreground">
-                      {selectedStudent.fullNameAmharic}
-                    </p>
-                  )}
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name (English) *</Label>
+                  <Input
+                    id="fullName"
+                    placeholder="Amar Ahmed Mohammed"
+                    value={formData.fullName}
+                    onChange={(e) => handleInputChange("fullName", e.target.value)}
+                  />
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground">Student ID</p>
-                  <p className="font-medium">{selectedStudent.studentId}</p>
+                <div className="space-y-2">
+                  <Label htmlFor="fullNameAmharic">Full Name (Amharic)</Label>
+                  <Input
+                    id="fullNameAmharic"
+                    placeholder="አማር አህመድ ሞሐመድ"
+                    value={formData.fullNameAmharic}
+                    onChange={(e) =>
+                      handleInputChange("fullNameAmharic", e.target.value)
+                    }
+                  />
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Department</p>
-                  <p className="font-medium">{selectedStudent.department}</p>
+                <div className="space-y-2">
+                  <Label htmlFor="department">Department *</Label>
+                  <Input
+                    id="department"
+                    placeholder="Information Technology"
+                    value={formData.department}
+                    onChange={(e) => handleInputChange("department", e.target.value)}
+                  />
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Year</p>
-                  <p className="font-medium">Year {selectedStudent.year}</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="year">Year</Label>
+                    <Select
+                      value={formData.year.toString()}
+                      onValueChange={(v) => handleInputChange("year", parseInt(v))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6].map((y) => (
+                          <SelectItem key={y} value={y.toString()}>
+                            Year {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="cafeStatus">Cafe Status</Label>
+                    <Select
+                      value={formData.cafeStatus}
+                      onValueChange={(v) =>
+                        handleInputChange("cafeStatus", v as CafeStatus)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cafe">Active (Cafe)</SelectItem>
+                        <SelectItem value="none">Inactive (None)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Cafe Status</p>
-                  <Badge
-                    variant={
-                      selectedStudent.cafeStatus === "cafe" ? "cafe" : "none"
+                <div className="space-y-2">
+                  <Label htmlFor="cafeteriaType">Cafeteria Type *</Label>
+                  <Select
+                    value={formData.cafeteriaType}
+                    onValueChange={(v) =>
+                      handleInputChange("cafeteriaType", v as CafeteriaType)
                     }
                   >
-                    {selectedStudent.cafeStatus === "cafe"
-                      ? "Active"
-                      : "Inactive"}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-muted-foreground">Hostel Resident</p>
-                  <p className="font-medium">
-                    {selectedStudent.hostelResident ? "Yes" : "No"}
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="muslim">Muslim Cafe</SelectItem>
+                      <SelectItem value="christian">Christian Cafe</SelectItem>
+                      <SelectItem value="fresh">Freshman Cafe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Select which cafeteria this student can access
                   </p>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Monthly Quota</p>
-                  <p className="font-medium">
-                    {selectedStudent.monthlyQuota
-                      ? `${selectedStudent.usedQuota}/${selectedStudent.monthlyQuota}`
-                      : "Unlimited"}
-                  </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="hostelResident"
+                    checked={formData.hostelResident}
+                    onChange={(e) =>
+                      handleInputChange("hostelResident", e.target.checked)
+                    }
+                    className="rounded border-input"
+                  />
+                  <Label htmlFor="hostelResident" className="text-sm font-normal">
+                    Hostel Resident
+                  </Label>
                 </div>
               </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsViewDialogOpen(false)}
-            >
-              Close
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => {
-                setIsViewDialogOpen(false);
-                if (selectedStudent) openEditDialog(selectedStudent);
-              }}
-            >
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddDialogOpen(false);
+                    setFormData(emptyFormData);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button variant="hero" onClick={handleAddStudent}>
+                  Add Student
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Student</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete{" "}
-              <strong>{selectedStudent?.fullName}</strong>? This action cannot
-              be undone and will remove all their meal records.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteStudent}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete Student
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Edit Student Dialog - Only for Admin */}
+        {isAdmin && (
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Edit Student</DialogTitle>
+                <DialogDescription>
+                  Update the student's information.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
+                <div className="space-y-2">
+                  <Label>Student ID</Label>
+                  <Input value={formData.studentId} disabled className="bg-muted" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-fullName">Full Name (English) *</Label>
+                  <Input
+                    id="edit-fullName"
+                    value={formData.fullName}
+                    onChange={(e) => handleInputChange("fullName", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-fullNameAmharic">Full Name (Amharic)</Label>
+                  <Input
+                    id="edit-fullNameAmharic"
+                    value={formData.fullNameAmharic}
+                    onChange={(e) =>
+                      handleInputChange("fullNameAmharic", e.target.value)
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-department">Department *</Label>
+                  <Input
+                    id="edit-department"
+                    value={formData.department}
+                    onChange={(e) => handleInputChange("department", e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Year</Label>
+                    <Select
+                      value={formData.year.toString()}
+                      onValueChange={(v) => handleInputChange("year", parseInt(v))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[1, 2, 3, 4, 5, 6].map((y) => (
+                          <SelectItem key={y} value={y.toString()}>
+                            Year {y}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cafe Status</Label>
+                    <Select
+                      value={formData.cafeStatus}
+                      onValueChange={(v) =>
+                        handleInputChange("cafeStatus", v as CafeStatus)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cafe">Active (Cafe)</SelectItem>
+                        <SelectItem value="none">Inactive (None)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cafeteria Type *</Label>
+                  <Select
+                    value={formData.cafeteriaType}
+                    onValueChange={(v) =>
+                      handleInputChange("cafeteriaType", v as CafeteriaType)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="muslim">Muslim Cafe</SelectItem>
+                      <SelectItem value="christian">Christian Cafe</SelectItem>
+                      <SelectItem value="fresh">Freshman Cafe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="edit-hostelResident"
+                    checked={formData.hostelResident}
+                    onChange={(e) =>
+                      handleInputChange("hostelResident", e.target.checked)
+                    }
+                    className="rounded border-input"
+                  />
+                  <Label htmlFor="edit-hostelResident" className="text-sm font-normal">
+                    Hostel Resident
+                  </Label>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsEditDialogOpen(false);
+                    setFormData(emptyFormData);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button variant="hero" onClick={handleEditStudent}>
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )}
+
+        {/* View Student Dialog */}
+        <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Student Details</DialogTitle>
+            </DialogHeader>
+            {selectedStudent && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+                    {selectedStudent.photoURL ? (
+                      <img
+                        src={selectedStudent.photoURL}
+                        alt=""
+                        className="w-full h-full rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-8 h-8 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">
+                      {selectedStudent.fullName}
+                    </h3>
+                    {selectedStudent.fullNameAmharic && (
+                      <p className="text-muted-foreground">
+                        {selectedStudent.fullNameAmharic}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-muted-foreground">Student ID</p>
+                    <p className="font-mono">{selectedStudent.studentId}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Department</p>
+                    <p>{selectedStudent.department}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Year</p>
+                    <p>Year {selectedStudent.year}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Cafeteria</p>
+                    <Badge variant={getCafeteriaTypeBadgeVariant(selectedStudent.cafeteriaType)}>
+                      {getCafeteriaTypeLabel(selectedStudent.cafeteriaType)}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Cafe Status</p>
+                    <Badge
+                      variant={
+                        selectedStudent.cafeStatus === "cafe" ? "cafe" : "none"
+                      }
+                    >
+                      {selectedStudent.cafeStatus === "cafe" ? "Active" : "Inactive"}
+                    </Badge>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Hostel Resident</p>
+                    <p>{selectedStudent.hostelResident ? "Yes" : "No"}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground">Quota</p>
+                    <p>
+                      {selectedStudent.monthlyQuota
+                        ? `${selectedStudent.usedQuota}/${selectedStudent.monthlyQuota}`
+                        : "Unlimited"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsViewDialogOpen(false)}
+              >
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog - Only for Admin */}
+        {isAdmin && (
+          <AlertDialog
+            open={isDeleteDialogOpen}
+            onOpenChange={setIsDeleteDialogOpen}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Student</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold">{selectedStudent?.fullName}</span>
+                  ? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteStudent}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </div>
     </Layout>
   );
 }

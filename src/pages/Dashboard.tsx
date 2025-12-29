@@ -46,7 +46,7 @@ const mealIcons = {
 export default function Dashboard() {
   const { t, language } = useLanguage();
   const today = new Date();
-  const dualDate = formatDualDate(today, language);
+  const dualDate = formatDualDate(today, language as 'en' | 'am');
   
   const percentChange = ((mockStats.todayTotal - mockStats.yesterdayTotal) / mockStats.yesterdayTotal * 100).toFixed(1);
   const isPositive = mockStats.todayTotal >= mockStats.yesterdayTotal;
@@ -168,9 +168,9 @@ export default function Dashboard() {
             <CardContent>
               <div className="grid grid-cols-3 gap-4">
                 {[
-                  { name: 'Main Cafeteria', count: 567, percentage: 45 },
-                  { name: 'College A', count: 389, percentage: 31 },
-                  { name: 'Hostel', count: 291, percentage: 24 },
+                  { name: 'Muslim Cafe', count: 567, percentage: 45 },
+                  { name: 'Christian Cafe', count: 389, percentage: 31 },
+                  { name: 'Freshman Cafe', count: 291, percentage: 24 },
                 ].map((caf) => (
                   <div key={caf.name} className="text-center">
                     <div className="relative w-20 h-20 mx-auto">

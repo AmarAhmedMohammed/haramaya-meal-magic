@@ -12,7 +12,6 @@ import Dashboard from "./pages/Dashboard";
 import Scanner from "./pages/Scanner";
 import Students from "./pages/Students";
 import Settings from "./pages/Settings";
-import Cafeterias from "./pages/Cafeterias";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,7 +31,6 @@ const App = () => (
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/scanner" element={<Scanner />} />
                 <Route path="/students" element={<Students />} />
-                <Route path="/cafeterias" element={<Cafeterias />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
