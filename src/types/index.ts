@@ -2,16 +2,18 @@ export type UserRole = 'super_admin' | 'cafeteria_manager' | 'cashier' | 'regist
 export type CafeStatus = 'cafe' | 'none';
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 export type ScanResult = 'granted' | 'denied';
+export type CafeteriaType = 'muslim' | 'christian' | 'fresh';
 
 export interface Student {
   id: string;
-  studentId: string; // Code 39 barcode value
+  studentId: string; // Barcode value (e.g., UGPR0680/16)
   fullName: string;
   fullNameAmharic?: string;
   department: string;
   year: number;
   photoURL?: string;
   cafeStatus: CafeStatus;
+  cafeteriaType: CafeteriaType; // Which cafeteria they belong to
   hostelResident: boolean;
   monthlyQuota: number | null;
   usedQuota: number;
@@ -45,6 +47,7 @@ export interface MealLog {
 export interface Cafeteria {
   id: string;
   cafeteriaId: string;
+  cafeteriaType: CafeteriaType; // muslim, christian, or fresh
   name: string;
   nameAmharic?: string;
   location: string;
@@ -73,7 +76,7 @@ export interface SystemSettings {
   };
   lockDurationMinutes: number;
   showEthiopianDate: boolean;
-  defaultLanguage: 'en' | 'am';
+  defaultLanguage: 'en' | 'am' | 'or';
 }
 
 export interface OfflineQueueItem {
@@ -99,5 +102,6 @@ export interface LocalizedStrings {
   [key: string]: {
     en: string;
     am: string;
+    or?: string;
   };
 }

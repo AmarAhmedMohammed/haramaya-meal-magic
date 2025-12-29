@@ -8,7 +8,7 @@ import {
   downloadCsvTemplate,
 } from "@/lib/csvUtils";
 import { createStudent } from "@/lib/firestore";
-import type { Student } from "@/types";
+import type { Student, CafeteriaType } from "@/types";
 
 interface ImportExportButtonsProps {
   students: Student[];
@@ -61,6 +61,12 @@ export function ImportExportButtons({
 
           for (const student of students) {
             try {
+              // Validate and default cafeteriaType
+              let cafeteriaType: CafeteriaType = 'christian';
+              if (student.cafeteriaType === 'muslim' || student.cafeteriaType === 'christian' || student.cafeteriaType === 'fresh') {
+                cafeteriaType = student.cafeteriaType;
+              }
+
               await createStudent({
                 studentId: student.studentId!,
                 fullName: student.fullName!,
@@ -68,11 +74,11 @@ export function ImportExportButtons({
                 department: student.department!,
                 year: student.year || 1,
                 cafeStatus: (student.cafeStatus as any) || "none",
+                cafeteriaType: cafeteriaType,
                 hostelResident: student.hostelResident || false,
                 monthlyQuota: student.monthlyQuota || null,
                 usedQuota: student.usedQuota || 0,
                 allowedCafeterias: [],
-                lastMeal: null,
               });
               successCount++;
             } catch (error) {

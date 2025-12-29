@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Layout } from '@/components/layout/Layout';
 import { BarcodeScanner } from '@/components/scanner/BarcodeScanner';
@@ -12,68 +12,51 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useMealSettings } from '@/contexts/MealSettingsContext';
-import { getCurrentMealType, checkMealEligibility, MealEligibilityResult } from '@/lib/mealLogic';
+import { getCurrentMealType, checkMealEligibility, MealEligibilityResult, getCafeteriaTypeLabel } from '@/lib/mealLogic';
 import { formatDualDate } from '@/lib/ethiopianCalendar';
-import { Student, MealType, Cafeteria, MealLog } from '@/types';
+import { getStudent, createMealLog, updateStudentLastMeal, subscribeToMealLogs } from '@/lib/firestore';
+import { Student, MealType, Cafeteria, MealLog, CafeteriaType } from '@/types';
 import { Wifi, WifiOff, Clock, History, Keyboard, Settings } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
-// Mock data for demo
-const mockCafeterias: Cafeteria[] = [
-  { id: '1', cafeteriaId: 'CAF-MAIN', name: 'Main Cafeteria', nameAmharic: 'ዋና ካፌቴሪያ', location: 'Main Campus', openHours: { breakfast: { start: '06:00', end: '09:00' }, lunch: { start: '11:30', end: '14:00' }, dinner: { start: '17:30', end: '20:00' } }, isActive: true },
-  { id: '2', cafeteriaId: 'CAF-COL-A', name: 'College A Cafeteria', nameAmharic: 'ኮሌጅ ሀ ካፌቴሪያ', location: 'College A', openHours: { breakfast: { start: '06:00', end: '09:00' }, lunch: { start: '11:30', end: '14:00' }, dinner: { start: '17:30', end: '20:00' } }, isActive: true },
-  { id: '3', cafeteriaId: 'CAF-HOSTEL', name: 'Hostel Cafeteria', nameAmharic: 'ሆስቴል ካፌቴሪያ', location: 'Student Hostels', openHours: { breakfast: { start: '06:00', end: '09:00' }, lunch: { start: '11:30', end: '14:00' }, dinner: { start: '17:30', end: '20:00' } }, isActive: true },
+// Three cafeterias: Muslim, Christian, and Freshman
+const cafeteriaList: Cafeteria[] = [
+  { 
+    id: '1', 
+    cafeteriaId: 'CAF-MUSLIM', 
+    cafeteriaType: 'muslim',
+    name: 'Muslim Cafe', 
+    nameAmharic: 'ሙስሊም ካፌ', 
+    location: 'Block A', 
+    openHours: { breakfast: { start: '06:00', end: '09:00' }, lunch: { start: '11:30', end: '14:00' }, dinner: { start: '17:30', end: '20:00' } }, 
+    isActive: true 
+  },
+  { 
+    id: '2', 
+    cafeteriaId: 'CAF-CHRISTIAN', 
+    cafeteriaType: 'christian',
+    name: 'Christian Cafe', 
+    nameAmharic: 'ክርስቲያን ካፌ', 
+    location: 'Block B', 
+    openHours: { breakfast: { start: '06:00', end: '09:00' }, lunch: { start: '11:30', end: '14:00' }, dinner: { start: '17:30', end: '20:00' } }, 
+    isActive: true 
+  },
+  { 
+    id: '3', 
+    cafeteriaId: 'CAF-FRESH', 
+    cafeteriaType: 'fresh',
+    name: 'Freshman Cafe', 
+    nameAmharic: 'አዲስ ተማሪ ካፌ', 
+    location: 'Block C', 
+    openHours: { breakfast: { start: '06:00', end: '09:00' }, lunch: { start: '11:30', end: '14:00' }, dinner: { start: '17:30', end: '20:00' } }, 
+    isActive: true 
+  },
 ];
-
-const mockStudents: Record<string, Student> = {
-  'HU2024001': {
-    id: '1',
-    studentId: 'HU2024001',
-    fullName: 'Abebe Kebede',
-    fullNameAmharic: 'አበበ ከበደ',
-    department: 'Computer Science',
-    year: 3,
-    cafeStatus: 'cafe',
-    hostelResident: true,
-    monthlyQuota: null,
-    usedQuota: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  'HU2024002': {
-    id: '2',
-    studentId: 'HU2024002',
-    fullName: 'Sara Tesfaye',
-    fullNameAmharic: 'ሳራ ተስፋዬ',
-    department: 'Engineering',
-    year: 2,
-    cafeStatus: 'cafe',
-    hostelResident: false,
-    monthlyQuota: 60,
-    usedQuota: 45,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-  'HU2024003': {
-    id: '3',
-    studentId: 'HU2024003',
-    fullName: 'Dawit Haile',
-    fullNameAmharic: 'ዳዊት ሃይሌ',
-    department: 'Medicine',
-    year: 4,
-    cafeStatus: 'none',
-    hostelResident: true,
-    monthlyQuota: null,
-    usedQuota: 0,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  },
-};
 
 export default function Scanner() {
   const { t, language } = useLanguage();
   const { settings } = useMealSettings();
-  const [selectedCafeteria, setSelectedCafeteria] = useState<string>(mockCafeterias[0].cafeteriaId);
+  const [selectedCafeteria, setSelectedCafeteria] = useState<string>(cafeteriaList[0].cafeteriaId);
   const [isProcessing, setIsProcessing] = useState(false);
   const [scanResult, setScanResult] = useState<MealEligibilityResult | null>(null);
   const [scannedStudent, setScannedStudent] = useState<Student | null>(null);
@@ -83,7 +66,7 @@ export default function Scanner() {
   const [manualBarcode, setManualBarcode] = useState('');
 
   const today = new Date();
-  const dualDate = formatDualDate(today, language);
+  const dualDate = formatDualDate(today, language as 'en' | 'am');
   
   // Use settings from context
   const systemSettings = { 
@@ -94,52 +77,66 @@ export default function Scanner() {
   };
   const activeMeal = getCurrentMealType(new Date(), systemSettings);
 
-  const cafeteria = mockCafeterias.find(c => c.cafeteriaId === selectedCafeteria)!;
+  const cafeteria = cafeteriaList.find(c => c.cafeteriaId === selectedCafeteria)!;
 
   // Scanner only works during active meal windows
   const canScan = activeMeal !== null;
+
+  // Subscribe to real-time meal logs
+  useEffect(() => {
+    const unsubscribe = subscribeToMealLogs(
+      (logs) => {
+        setRecentScans(logs);
+      },
+      { cafeteriaId: selectedCafeteria, limit: 20 }
+    );
+
+    return () => unsubscribe();
+  }, [selectedCafeteria]);
 
   const handleScan = useCallback(async (barcode: string) => {
     if (!activeMeal) return;
     
     setIsProcessing(true);
     
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    const student = mockStudents[barcode.toUpperCase()] || null;
-    
-    const result = checkMealEligibility(student, activeMeal, cafeteria, systemSettings);
-    
-    setScannedStudent(student);
-    setCurrentMealType(activeMeal);
-    setScanResult(result);
-    
-    // Add to recent scans
-    const newLog: MealLog = {
-      id: Date.now().toString(),
-      studentId: student?.studentId || barcode,
-      studentName: student?.fullName || 'Unknown Student',
-      mealType: activeMeal,
-      cafeteriaId: cafeteria.cafeteriaId,
-      cafeteriaName: cafeteria.name,
-      timestamp: new Date(),
-      result: result.result,
-      reason: result.reason,
-      synced: isOnline,
-    };
-    setRecentScans(prev => [newLog, ...prev.slice(0, 19)]);
-    
-    // Update student's last meal if granted
-    if (result.eligible && student && mockStudents[barcode.toUpperCase()]) {
-      mockStudents[barcode.toUpperCase()].lastMeal = {
+    try {
+      // Fetch student from Firebase
+      const student = await getStudent(barcode.toUpperCase());
+      
+      const result = checkMealEligibility(student, activeMeal, cafeteria, systemSettings);
+      
+      setScannedStudent(student);
+      setCurrentMealType(activeMeal);
+      setScanResult(result);
+      
+      // Log the scan to Firebase
+      await createMealLog({
+        studentId: student?.studentId || barcode,
+        studentName: student?.fullName || 'Unknown Student',
         mealType: activeMeal,
-        timestamp: new Date(),
         cafeteriaId: cafeteria.cafeteriaId,
-      };
+        cafeteriaName: cafeteria.name,
+        timestamp: new Date(),
+        result: result.result,
+        reason: result.reason,
+        synced: isOnline,
+      });
+      
+      // Update student's last meal if granted
+      if (result.eligible && student) {
+        await updateStudentLastMeal(student.studentId, activeMeal, cafeteria.cafeteriaId);
+      }
+    } catch (error) {
+      console.error('Scan error:', error);
+      setScanResult({
+        eligible: false,
+        result: 'denied',
+        reason: 'Error processing scan. Please try again.',
+        reasonCode: 'student_not_found'
+      });
+    } finally {
+      setIsProcessing(false);
     }
-    
-    setIsProcessing(false);
   }, [cafeteria, isOnline, activeMeal, systemSettings]);
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -156,7 +153,7 @@ export default function Scanner() {
     setCurrentMealType(null);
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     
@@ -203,11 +200,11 @@ export default function Scanner() {
             
             {/* Cafeteria selector */}
             <Select value={selectedCafeteria} onValueChange={setSelectedCafeteria}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-52">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {mockCafeterias.map((caf) => (
+                {cafeteriaList.map((caf) => (
                   <SelectItem key={caf.cafeteriaId} value={caf.cafeteriaId}>
                     {language === 'am' && caf.nameAmharic ? caf.nameAmharic : caf.name}
                   </SelectItem>
@@ -216,6 +213,23 @@ export default function Scanner() {
             </Select>
           </div>
         </div>
+
+        {/* Current Cafeteria Info */}
+        <Card variant="default" className="border-accent/30 bg-accent/5">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-lg font-semibold text-foreground">{cafeteria.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  Only students registered for <span className="font-medium text-accent">{getCafeteriaTypeLabel(cafeteria.cafeteriaType)}</span> can scan here
+                </p>
+              </div>
+              <Badge variant="cafe" className="text-sm">
+                {getCafeteriaTypeLabel(cafeteria.cafeteriaType)}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Current Meal Status */}
         <CurrentMealStatus />
@@ -249,7 +263,7 @@ export default function Scanner() {
                   {!canScan && (
                     <div className="p-4 bg-warning/10 rounded-lg text-center">
                       <p className="text-warning font-medium">
-                        No active meal window. Enable Demo Mode to test scanning.
+                        No active meal window. Scanning is disabled outside meal hours.
                       </p>
                     </div>
                   )}
@@ -265,7 +279,7 @@ export default function Scanner() {
                   </Label>
                   <div className="flex gap-2">
                     <Input
-                      placeholder="Enter student ID (e.g., HU2024001)"
+                      placeholder="Enter student ID (e.g., UGPR0680/16)"
                       value={manualBarcode}
                       onChange={(e) => setManualBarcode(e.target.value.toUpperCase())}
                       disabled={!canScan || isProcessing}
@@ -320,7 +334,9 @@ export default function Scanner() {
                             {scan.result === 'granted' ? t('accessGranted') : t('accessDenied')}
                           </Badge>
                           <p className="text-xs text-muted-foreground mt-1">
-                            {scan.timestamp.toLocaleTimeString()}
+                            {scan.timestamp instanceof Date 
+                              ? scan.timestamp.toLocaleTimeString() 
+                              : new Date(scan.timestamp).toLocaleTimeString()}
                           </p>
                         </div>
                       </div>
@@ -335,14 +351,12 @@ export default function Scanner() {
           </Card>
         </div>
 
-        {/* Demo Instructions */}
+        {/* Instructions */}
         <Card variant="bordered" className="border-dashed">
           <CardContent className="py-4">
             <p className="text-sm text-muted-foreground text-center">
-              <strong>Test IDs:</strong>{' '}
-              <code className="bg-muted px-1.5 py-0.5 rounded">HU2024001</code> (active student),{' '}
-              <code className="bg-muted px-1.5 py-0.5 rounded">HU2024002</code> (has quota),{' '}
-              <code className="bg-muted px-1.5 py-0.5 rounded">HU2024003</code> (blocked - none cafe)
+              <strong>Note:</strong> Students can only scan at their registered cafeteria type. 
+              If a student scans at the wrong cafeteria, access will be denied.
             </p>
           </CardContent>
         </Card>

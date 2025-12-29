@@ -1,4 +1,4 @@
-import { Student, MealType, SystemSettings, ScanResult, Cafeteria } from '@/types';
+import { Student, MealType, SystemSettings, ScanResult, Cafeteria, CafeteriaType } from '@/types';
 
 export interface MealEligibilityResult {
   eligible: boolean;
@@ -12,7 +12,8 @@ export interface MealEligibilityResult {
     | 'quota_exhausted'
     | 'student_not_found'
     | 'outside_meal_window'
-    | 'cafeteria_not_allowed';
+    | 'cafeteria_not_allowed'
+    | 'wrong_cafeteria';
 }
 
 const DEFAULT_LOCK_DURATION = 180; // 3 hours in minutes
@@ -63,6 +64,19 @@ export function getNextMealWindow(time: Date = new Date(), settings?: SystemSett
   return { mealType: 'breakfast', startTime: tomorrow };
 }
 
+export function getCafeteriaTypeLabel(type: CafeteriaType): string {
+  switch (type) {
+    case 'muslim':
+      return 'Muslim Cafe';
+    case 'christian':
+      return 'Christian Cafe';
+    case 'fresh':
+      return 'Freshman Cafe';
+    default:
+      return type;
+  }
+}
+
 export function checkMealEligibility(
   student: Student | null,
   currentMealType: MealType,
@@ -91,7 +105,19 @@ export function checkMealEligibility(
     };
   }
   
-  // Check cafeteria restrictions
+  // Check if student belongs to this cafeteria type
+  if (student.cafeteriaType !== cafeteria.cafeteriaType) {
+    const studentCafe = getCafeteriaTypeLabel(student.cafeteriaType);
+    const currentCafe = getCafeteriaTypeLabel(cafeteria.cafeteriaType);
+    return {
+      eligible: false,
+      result: 'denied',
+      reason: `This student belongs to ${studentCafe}, not ${currentCafe}`,
+      reasonCode: 'wrong_cafeteria'
+    };
+  }
+  
+  // Check cafeteria restrictions (legacy support)
   if (student.allowedCafeterias && student.allowedCafeterias.length > 0) {
     if (!student.allowedCafeterias.includes(cafeteria.cafeteriaId)) {
       return {
