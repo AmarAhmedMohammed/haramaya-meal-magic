@@ -111,11 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const verifiedStaff = await verifyStaffLogin(email, staffId);
     
     if (!verifiedStaff) {
-      throw new Error('Invalid email or staff ID');
+      throw new Error('Invalid email or staff ID. Please ensure a staff account has been created for you by an admin.');
     }
     
     if (verifiedStaff.role !== role) {
-      throw new Error(`This account is not registered as ${role === 'registrar' ? 'a Registrar' : 'Cafe Service'}`);
+      throw new Error(`This account is registered as ${verifiedStaff.role === 'registrar' ? 'Registrar' : 'Cafe Service'}, not ${role === 'registrar' ? 'Registrar' : 'Cafe Service'}.`);
     }
     
     // Store in localStorage for persistence

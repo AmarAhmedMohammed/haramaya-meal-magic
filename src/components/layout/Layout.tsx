@@ -3,14 +3,12 @@ import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
-  ScanLine,
   Users,
   Settings,
   LogOut,
   Menu,
   X,
   Languages,
-  UserPlus,
   CreditCard,
   Shield,
 } from "lucide-react";
@@ -33,11 +31,6 @@ const mainNavItems: NavItem[] = [
     href: "/dashboard",
   },
   {
-    icon: <ScanLine className="w-5 h-5" />,
-    label: "Scanner",
-    href: "/scanner",
-  },
-  {
     icon: <Users className="w-5 h-5" />,
     label: "Students",
     href: "/students",
@@ -52,16 +45,10 @@ const mainNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   {
-    icon: <UserPlus className="w-5 h-5" />,
-    label: "Register Student",
-    href: "/admin/register-student",
-    roles: ["super_admin", "registrar_admin"],
-  },
-  {
     icon: <CreditCard className="w-5 h-5" />,
     label: "ID Cards",
     href: "/admin/id-cards",
-    roles: ["super_admin", "registrar_admin"],
+    roles: ["super_admin"],
   },
   {
     icon: <Shield className="w-5 h-5" />,
