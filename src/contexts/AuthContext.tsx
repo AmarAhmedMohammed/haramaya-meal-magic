@@ -81,7 +81,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInAdmin = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    
+    // Check if admin document exists, if not create one for super admin
+    const adminDoc = await getDoc(doc(db, 'admins', userCredential.user.uid));
+    if (!adminDoc.exists()) {
+      // Create admin document for this user
+      const { setDoc } = await import('firebase/firestore');
+      await setDoc(doc(db, 'admins', userCredential.user.uid), {
+        uid: userCredential.user.uid,
+        email: userCredential.user.email,
+        displayName: userCredential.user.displayName || email.split('@')[0],
+        role: 'super_admin',
+        createdAt: new Date(),
+      });
+      
+      setAdmin({
+        uid: userCredential.user.uid,
+        email: userCredential.user.email || email,
+        displayName: userCredential.user.displayName || email.split('@')[0],
+        role: 'super_admin',
+        createdAt: new Date(),
+      });
+      setAuthType('admin');
+    }
   };
 
   const signInStaff = async (email: string, staffId: string, role: StaffRole): Promise<Staff> => {
