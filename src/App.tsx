@@ -15,6 +15,9 @@ import Settings from "./pages/Settings";
 import RegisterStudent from "./pages/admin/RegisterStudent";
 import IDCards from "./pages/admin/IDCards";
 import ManageAdmins from "./pages/admin/ManageAdmins";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import RegistrarDashboard from "./pages/registrar/RegistrarDashboard";
+import CafeServiceDashboard from "./pages/cafe/CafeServiceDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,9 +36,9 @@ const App = () => (
                 <Route path="/login" element={<Login />} />
                 <Route path="/login/:type" element={<Login />} />
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/admin/dashboard" element={<Dashboard />} />
-                <Route path="/registrar/dashboard" element={<Students />} />
-                <Route path="/cafe/dashboard" element={<Scanner />} />
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                <Route path="/registrar/dashboard" element={<RegistrarDashboard />} />
+                <Route path="/cafe/dashboard" element={<CafeServiceDashboard />} />
                 <Route path="/scanner" element={<Scanner />} />
                 <Route path="/students" element={<Students />} />
                 <Route path="/settings" element={<Settings />} />
