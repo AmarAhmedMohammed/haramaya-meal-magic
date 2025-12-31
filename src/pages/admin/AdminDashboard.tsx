@@ -231,9 +231,10 @@ export default function AdminDashboard() {
 
     try {
       const newStatus = studentAction === 'none' ? 'active' : studentAction;
+      const newCafeStatus = studentAction === 'none' ? 'cafe' : 'none';
       await updateStudent(selectedStudent.studentId, {
         status: newStatus as 'active' | 'graduated' | 'persecuted' | 'suspended',
-        cafeStatus: studentAction === 'none' || studentAction !== 'active' ? 'none' : 'cafe',
+        cafeStatus: newCafeStatus,
       });
 
       toast({
