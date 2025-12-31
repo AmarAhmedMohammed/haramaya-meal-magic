@@ -86,18 +86,56 @@ export async function getStaffByEmail(email: string): Promise<Staff | null> {
 // Verify staff login (email + staffId)
 export async function verifyStaffLogin(email: string, staffId: string): Promise<Staff | null> {
   try {
+    // First, try to get staff by email (case-insensitive)
     const staffRef = collection(db, 'staff');
-    const q = query(
-      staffRef, 
-      where('email', '==', email.toLowerCase()),
-      where('staffId', '==', staffId)
-    );
+    const q = query(staffRef, where('email', '==', email.toLowerCase()));
     const snapshot = await getDocs(q);
     
-    if (snapshot.empty) return null;
+    if (snapshot.empty) {
+      // Also try with original email case
+      const q2 = query(staffRef, where('email', '==', email));
+      const snapshot2 = await getDocs(q2);
+      
+      if (snapshot2.empty) {
+        console.log('No staff found with email:', email);
+        return null;
+      }
+      
+      const doc = snapshot2.docs[0];
+      const data = doc.data();
+      
+      // Verify staffId matches (case-insensitive)
+      if (data.staffId?.toUpperCase() !== staffId.toUpperCase()) {
+        console.log('Staff ID mismatch. Expected:', data.staffId, 'Got:', staffId);
+        return null;
+      }
+      
+      if (!data.isActive) {
+        throw new Error('This account has been deactivated');
+      }
+      
+      return {
+        id: doc.id,
+        staffId: data.staffId || doc.id,
+        email: data.email,
+        fullName: data.fullName,
+        phoneNumber: data.phoneNumber,
+        role: data.role,
+        cafeteriaType: data.cafeteriaType,
+        isActive: data.isActive ?? true,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      };
+    }
     
     const doc = snapshot.docs[0];
     const data = doc.data();
+    
+    // Verify staffId matches (case-insensitive)
+    if (data.staffId?.toUpperCase() !== staffId.toUpperCase()) {
+      console.log('Staff ID mismatch. Expected:', data.staffId, 'Got:', staffId);
+      return null;
+    }
     
     if (!data.isActive) {
       throw new Error('This account has been deactivated');
