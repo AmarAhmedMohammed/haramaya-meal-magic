@@ -71,6 +71,7 @@ export function ImportExportButtons({
                 studentId: student.studentId!,
                 fullName: student.fullName!,
                 fullNameAmharic: student.fullNameAmharic || "",
+                email: '',
                 department: student.department!,
                 year: student.year || 1,
                 cafeStatus: (student.cafeStatus as any) || "none",
@@ -79,6 +80,7 @@ export function ImportExportButtons({
                 monthlyQuota: student.monthlyQuota || null,
                 usedQuota: student.usedQuota || 0,
                 allowedCafeterias: [],
+                status: 'active',
               });
               successCount++;
             } catch (error) {

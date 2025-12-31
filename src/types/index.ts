@@ -1,5 +1,7 @@
 export type UserRole = 'super_admin' | 'cafeteria_manager' | 'cashier' | 'registrar_admin';
+export type StaffRole = 'registrar' | 'cafe_service';
 export type CafeStatus = 'cafe' | 'none';
+export type StudentStatus = 'active' | 'graduated' | 'persecuted' | 'suspended';
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 export type ScanResult = 'granted' | 'denied';
 export type CafeteriaType = 'muslim' | 'christian' | 'fresh';
@@ -9,6 +11,7 @@ export interface Student {
   studentId: string; // Barcode value (e.g., UGPR0680/16)
   fullName: string;
   fullNameAmharic?: string;
+  email: string;
   department: string;
   year: number;
   photoURL?: string;
@@ -18,12 +21,26 @@ export interface Student {
   monthlyQuota: number | null;
   usedQuota: number;
   allowedCafeterias?: string[];
+  status: StudentStatus;
   lastMeal?: {
     mealType: MealType;
     timestamp: Date;
     cafeteriaId: string;
   };
   notes?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Staff {
+  id: string;
+  staffId: string; // Auto-generated unique ID
+  email: string;
+  fullName: string;
+  phoneNumber: string;
+  role: StaffRole;
+  cafeteriaType?: CafeteriaType; // For cafe service staff
+  isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -77,6 +94,18 @@ export interface SystemSettings {
   lockDurationMinutes: number;
   showEthiopianDate: boolean;
   defaultLanguage: 'en' | 'am' | 'or';
+  scanningEnabled: boolean;
+}
+
+export interface SupportTicket {
+  id: string;
+  staffId: string;
+  staffName: string;
+  subject: string;
+  message: string;
+  status: 'open' | 'in_progress' | 'resolved';
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface OfflineQueueItem {

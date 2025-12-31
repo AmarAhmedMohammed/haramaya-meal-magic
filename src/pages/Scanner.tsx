@@ -73,7 +73,8 @@ export default function Scanner() {
     mealWindows: settings.mealWindows, 
     lockDurationMinutes: settings.lockDurationMinutes, 
     showEthiopianDate: true, 
-    defaultLanguage: 'en' as const 
+    defaultLanguage: 'en' as const,
+    scanningEnabled: settings.scanningEnabled ?? true
   };
   const activeMeal = getCurrentMealType(new Date(), systemSettings);
 
