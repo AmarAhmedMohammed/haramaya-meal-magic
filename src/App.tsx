@@ -9,10 +9,8 @@ import { MealSettingsProvider } from "@/contexts/MealSettingsContext";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
-import Scanner from "./pages/Scanner";
 import Students from "./pages/Students";
 import Settings from "./pages/Settings";
-import RegisterStudent from "./pages/admin/RegisterStudent";
 import IDCards from "./pages/admin/IDCards";
 import ManageAdmins from "./pages/admin/ManageAdmins";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -39,12 +37,11 @@ const App = () => (
                 <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/registrar/dashboard" element={<RegistrarDashboard />} />
                 <Route path="/cafe/dashboard" element={<CafeServiceDashboard />} />
-                <Route path="/scanner" element={<Scanner />} />
                 <Route path="/students" element={<Students />} />
                 <Route path="/settings" element={<Settings />} />
-                <Route path="/admin/register-student" element={<RegisterStudent />} />
                 <Route path="/admin/id-cards" element={<IDCards />} />
                 <Route path="/admin/manage" element={<ManageAdmins />} />
+                <Route path="*" element={<NotFound />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
