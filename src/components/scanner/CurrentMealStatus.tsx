@@ -18,7 +18,13 @@ const mealIcons: Record<MealType, React.ReactNode> = {
 export function CurrentMealStatus() {
   const { t } = useLanguage();
   const { settings } = useMealSettings();
-  const systemSettings = { mealWindows: settings.mealWindows, lockDurationMinutes: settings.lockDurationMinutes, showEthiopianDate: true, defaultLanguage: 'en' as const };
+  const systemSettings = { 
+    mealWindows: settings.mealWindows, 
+    lockDurationMinutes: settings.lockDurationMinutes, 
+    showEthiopianDate: true, 
+    defaultLanguage: 'en' as const,
+    scanningEnabled: settings.scanningEnabled ?? true
+  };
   
   const currentMeal = getCurrentMealType(new Date(), systemSettings);
   const nextMeal = getNextMealWindow(new Date(), systemSettings);

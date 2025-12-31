@@ -105,6 +105,7 @@ export default function RegisterStudent() {
         studentId: formData.studentId,
         fullName: formData.fullName,
         fullNameAmharic: formData.fullNameAmharic,
+        email: '',
         department: formData.department,
         year: formData.year,
         cafeStatus: formData.cafeStatus,
@@ -112,6 +113,7 @@ export default function RegisterStudent() {
         hostelResident: formData.hostelResident,
         monthlyQuota: formData.monthlyQuota,
         usedQuota: 0,
+        status: 'active',
       });
 
       toast({

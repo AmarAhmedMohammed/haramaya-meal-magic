@@ -10,26 +10,28 @@ import {
   updateMealSettings as updateFirestoreSettings,
   subscribeToMealSettings,
 } from "@/lib/firestore";
-import { SystemSettings, MealType } from "@/types";
+import { MealType } from "@/types";
 
 interface MealWindow {
   start: string;
   end: string;
 }
 
-interface MealSettings {
+export interface MealSettings {
   mealWindows: {
     breakfast: MealWindow;
     lunch: MealWindow;
     dinner: MealWindow;
   };
   lockDurationMinutes: number;
+  scanningEnabled: boolean;
 }
 
 interface MealSettingsContextType {
   settings: MealSettings;
   updateMealWindow: (meal: MealType, window: MealWindow) => void;
   updateLockDuration: (minutes: number) => void;
+  updateScanningEnabled: (enabled: boolean) => void;
   resetToDefaults: () => void;
   loading: boolean;
 }
@@ -41,6 +43,7 @@ const DEFAULT_SETTINGS: MealSettings = {
     dinner: { start: "17:30", end: "20:00" },
   },
   lockDurationMinutes: 180,
+  scanningEnabled: true,
 };
 
 const MealSettingsContext = createContext<MealSettingsContextType | undefined>(
@@ -60,6 +63,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
           setSettings({
             mealWindows: firestoreSettings.mealWindows,
             lockDurationMinutes: firestoreSettings.lockDurationMinutes,
+            scanningEnabled: firestoreSettings.scanningEnabled ?? true,
           });
         } else {
           // Initialize Firestore with default settings if none exist
@@ -80,6 +84,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
         setSettings({
           mealWindows: updatedSettings.mealWindows,
           lockDurationMinutes: updatedSettings.lockDurationMinutes,
+          scanningEnabled: updatedSettings.scanningEnabled ?? true,
         });
       }
     });
@@ -128,6 +133,25 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateScanningEnabled = async (enabled: boolean) => {
+    const newSettings = {
+      ...settings,
+      scanningEnabled: enabled,
+    };
+
+    // Optimistic update
+    setSettings(newSettings);
+
+    // Save to Firestore
+    try {
+      await updateFirestoreSettings(newSettings);
+    } catch (error) {
+      console.error("Error updating scanning enabled:", error);
+      // Revert on error
+      setSettings(settings);
+    }
+  };
+
   const resetToDefaults = async () => {
     setSettings(DEFAULT_SETTINGS);
 
@@ -145,6 +169,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
         settings,
         updateMealWindow,
         updateLockDuration,
+        updateScanningEnabled,
         resetToDefaults,
         loading,
       }}

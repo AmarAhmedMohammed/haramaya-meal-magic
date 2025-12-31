@@ -154,6 +154,7 @@ export default function Students() {
         studentId: formData.studentId,
         fullName: formData.fullName,
         fullNameAmharic: formData.fullNameAmharic,
+        email: '',
         department: formData.department,
         year: formData.year,
         cafeStatus: formData.cafeStatus,
@@ -161,6 +162,7 @@ export default function Students() {
         hostelResident: formData.hostelResident,
         monthlyQuota: formData.monthlyQuota,
         usedQuota: 0,
+        status: 'active',
       });
 
       setIsAddDialogOpen(false);
