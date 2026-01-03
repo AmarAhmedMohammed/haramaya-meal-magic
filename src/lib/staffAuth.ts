@@ -86,75 +86,67 @@ export async function getStaffByEmail(email: string): Promise<Staff | null> {
 // Verify staff login (email + staffId)
 export async function verifyStaffLogin(email: string, staffId: string): Promise<Staff | null> {
   try {
-    // First, try to get staff by email (case-insensitive)
-    const staffRef = collection(db, 'staff');
-    const q = query(staffRef, where('email', '==', email.toLowerCase()));
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
-      // Also try with original email case
-      const q2 = query(staffRef, where('email', '==', email));
-      const snapshot2 = await getDocs(q2);
-      
-      if (snapshot2.empty) {
-        console.log('No staff found with email:', email);
-        return null;
-      }
-      
-      const doc = snapshot2.docs[0];
-      const data = doc.data();
-      
-      // Verify staffId matches (case-insensitive)
-      if (data.staffId?.toUpperCase() !== staffId.toUpperCase()) {
-        console.log('Staff ID mismatch. Expected:', data.staffId, 'Got:', staffId);
-        return null;
-      }
-      
-      if (!data.isActive) {
-        throw new Error('This account has been deactivated');
-      }
-      
-      return {
-        id: doc.id,
-        staffId: data.staffId || doc.id,
-        email: data.email,
-        fullName: data.fullName,
-        phoneNumber: data.phoneNumber,
-        role: data.role,
-        cafeteriaType: data.cafeteriaType,
-        isActive: data.isActive ?? true,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-      };
+    const staffIdNormalized = (staffId || "").trim().toUpperCase();
+    const emailNormalized = (email || "").trim().toLowerCase();
+
+    // Common confusion: Admin IDs (ADM-...) are NOT used for Staff login.
+    if (staffIdNormalized.startsWith("ADM-")) {
+      throw new Error(
+        "You entered an Admin ID (ADM-...). Please sign in from Admin Login using email + password."
+      );
     }
-    
-    const doc = snapshot.docs[0];
-    const data = doc.data();
-    
-    // Verify staffId matches (case-insensitive)
-    if (data.staffId?.toUpperCase() !== staffId.toUpperCase()) {
-      console.log('Staff ID mismatch. Expected:', data.staffId, 'Got:', staffId);
+
+    // Staff documents are stored with the Staff ID as the Firestore document ID.
+    // Using getDoc avoids case-sensitive email queries.
+    const staffDocRef = doc(db, "staff", staffIdNormalized);
+    const staffSnap = await getDoc(staffDocRef);
+
+    if (!staffSnap.exists()) {
+      console.log("No staff found with staffId:", staffIdNormalized);
       return null;
     }
-    
-    if (!data.isActive) {
-      throw new Error('This account has been deactivated');
+
+    const data = staffSnap.data();
+    const storedEmail = String(data.email || "").trim().toLowerCase();
+
+    // Verify email matches (case-insensitive)
+    if (storedEmail !== emailNormalized) {
+      console.log("Email mismatch for staffId", staffIdNormalized, "Expected:", storedEmail, "Got:", emailNormalized);
+      return null;
     }
-    
+
+    if (!data.isActive) {
+      throw new Error("This account has been deactivated");
+    }
+
+    // Ensure role is one of the supported StaffRole values
+    const role = (() => {
+      const r = String(data.role || "").trim();
+      if (r === "registrar" || r === "cafe_service") return r as StaffRole;
+      // Fallback mapping (in case older data used different labels)
+      if (r === "registrar_admin") return "registrar";
+      if (r === "cafeteria_manager") return "cafe_service";
+      return null;
+    })();
+
+    if (!role) {
+      throw new Error("Invalid staff role on this account. Please ask an admin to fix the staff role.");
+    }
+
     return {
-      id: doc.id,
-      staffId: data.staffId || doc.id,
+      id: staffSnap.id,
+      staffId: data.staffId || staffSnap.id,
       email: data.email,
       fullName: data.fullName,
       phoneNumber: data.phoneNumber,
-      role: data.role,
+      role,
       cafeteriaType: data.cafeteriaType,
       isActive: data.isActive ?? true,
       createdAt: data.createdAt?.toDate() || new Date(),
       updatedAt: data.updatedAt?.toDate() || new Date(),
     };
   } catch (error) {
-    console.error('Error verifying staff login:', error);
+    console.error("Error verifying staff login:", error);
     throw error;
   }
 }
