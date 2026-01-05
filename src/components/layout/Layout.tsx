@@ -9,7 +9,6 @@ import {
   Menu,
   X,
   Languages,
-  CreditCard,
   Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,12 +43,6 @@ const mainNavItems: NavItem[] = [
 ];
 
 const adminNavItems: NavItem[] = [
-  {
-    icon: <CreditCard className="w-5 h-5" />,
-    label: "ID Cards",
-    href: "/admin/id-cards",
-    roles: ["super_admin"],
-  },
   {
     icon: <Shield className="w-5 h-5" />,
     label: "Manage Admins",
