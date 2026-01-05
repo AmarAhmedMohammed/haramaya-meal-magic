@@ -206,27 +206,37 @@ export async function deleteStaff(staffId: string) {
 }
 
 // Subscribe to staff changes
-export function subscribeToStaff(callback: (staff: Staff[]) => void) {
+export function subscribeToStaff(
+  callback: (staff: Staff[]) => void,
+  onError?: (error: unknown) => void
+) {
   const staffRef = collection(db, 'staff');
-  
-  return onSnapshot(staffRef, (snapshot) => {
-    const staff = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        staffId: data.staffId || doc.id,
-        email: data.email,
-        fullName: data.fullName,
-        phoneNumber: data.phoneNumber,
-        role: data.role,
-        cafeteriaType: data.cafeteriaType,
-        isActive: data.isActive ?? true,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-      };
-    });
-    callback(staff);
-  });
+
+  return onSnapshot(
+    staffRef,
+    (snapshot) => {
+      const staff = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          staffId: data.staffId || doc.id,
+          email: data.email,
+          fullName: data.fullName,
+          phoneNumber: data.phoneNumber,
+          role: data.role,
+          cafeteriaType: data.cafeteriaType,
+          isActive: data.isActive ?? true,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        };
+      });
+      callback(staff);
+    },
+    (error) => {
+      console.error('Staff listener error:', error);
+      onError?.(error);
+    }
+  );
 }
 
 // Support tickets
@@ -269,23 +279,33 @@ export async function getAllSupportTickets(): Promise<SupportTicket[]> {
   }
 }
 
-export function subscribeToSupportTickets(callback: (tickets: SupportTicket[]) => void) {
+export function subscribeToSupportTickets(
+  callback: (tickets: SupportTicket[]) => void,
+  onError?: (error: unknown) => void
+) {
   const ticketsRef = collection(db, 'supportTickets');
-  
-  return onSnapshot(ticketsRef, (snapshot) => {
-    const tickets = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        staffId: data.staffId,
-        staffName: data.staffName,
-        subject: data.subject,
-        message: data.message,
-        status: data.status || 'open',
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-      };
-    });
-    callback(tickets);
-  });
+
+  return onSnapshot(
+    ticketsRef,
+    (snapshot) => {
+      const tickets = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          staffId: data.staffId,
+          staffName: data.staffName,
+          subject: data.subject,
+          message: data.message,
+          status: data.status || 'open',
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        };
+      });
+      callback(tickets);
+    },
+    (error) => {
+      console.error('Support tickets listener error:', error);
+      onError?.(error);
+    }
+  );
 }

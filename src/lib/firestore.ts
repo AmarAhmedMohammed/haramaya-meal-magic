@@ -381,95 +381,123 @@ export async function getMealLogs(filters?: {
 // REAL-TIME LISTENERS
 // =============================================
 
-export function subscribeToStudents(callback: (students: Student[]) => void) {
+export function subscribeToStudents(
+  callback: (students: Student[]) => void,
+  onError?: (error: unknown) => void
+) {
   const studentsRef = collection(db, "students");
 
-  return onSnapshot(studentsRef, (snapshot) => {
-    const students = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        studentId: data.studentId || doc.id,
-        fullName: data.fullName || '',
-        fullNameAmharic: data.fullNameAmharic,
-        department: data.department || '',
-        year: data.year || 1,
-        photoURL: data.photoURL,
-        cafeStatus: data.cafeStatus || 'none',
-        cafeteriaType: data.cafeteriaType || 'christian',
-        hostelResident: data.hostelResident || false,
-        monthlyQuota: data.monthlyQuota ?? null,
-        usedQuota: data.usedQuota || 0,
-        allowedCafeterias: data.allowedCafeterias,
-        lastMeal: data.lastMeal
-          ? {
-              ...data.lastMeal,
-              timestamp: data.lastMeal.timestamp?.toDate() || new Date(),
-            }
-          : undefined,
-        notes: data.notes,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-      } as Student;
-    });
-    callback(students);
-  });
+  return onSnapshot(
+    studentsRef,
+    (snapshot) => {
+      const students = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          studentId: data.studentId || doc.id,
+          fullName: data.fullName || '',
+          fullNameAmharic: data.fullNameAmharic,
+          department: data.department || '',
+          year: data.year || 1,
+          photoURL: data.photoURL,
+          cafeStatus: data.cafeStatus || 'none',
+          cafeteriaType: data.cafeteriaType || 'christian',
+          hostelResident: data.hostelResident || false,
+          monthlyQuota: data.monthlyQuota ?? null,
+          usedQuota: data.usedQuota || 0,
+          allowedCafeterias: data.allowedCafeterias,
+          lastMeal: data.lastMeal
+            ? {
+                ...data.lastMeal,
+                timestamp: data.lastMeal.timestamp?.toDate() || new Date(),
+              }
+            : undefined,
+          notes: data.notes,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Student;
+      });
+      callback(students);
+    },
+    (error) => {
+      console.error("Students listener error:", error);
+      onError?.(error);
+    }
+  );
 }
 
 export function subscribeToMealSettings(
-  callback: (settings: SystemSettings | null) => void
+  callback: (settings: SystemSettings | null) => void,
+  onError?: (error: unknown) => void
 ) {
   const settingsRef = doc(db, "settings", "mealSettings");
 
-  return onSnapshot(settingsRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.data();
-      callback({
-        mealWindows: data.mealWindows || {
-          breakfast: { start: '06:00', end: '09:00' },
-          lunch: { start: '11:30', end: '14:00' },
-          dinner: { start: '17:30', end: '20:00' },
-        },
-        lockDurationMinutes: data.lockDurationMinutes || 180,
-        showEthiopianDate: data.showEthiopianDate ?? true,
-        defaultLanguage: data.defaultLanguage || 'en',
-      } as SystemSettings);
-    } else {
-      callback(null);
+  return onSnapshot(
+    settingsRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        callback({
+          mealWindows: data.mealWindows || {
+            breakfast: { start: '06:00', end: '09:00' },
+            lunch: { start: '11:30', end: '14:00' },
+            dinner: { start: '17:30', end: '20:00' },
+          },
+          lockDurationMinutes: data.lockDurationMinutes || 180,
+          showEthiopianDate: data.showEthiopianDate ?? true,
+          defaultLanguage: data.defaultLanguage || 'en',
+          scanningEnabled: data.scanningEnabled ?? true,
+        } as SystemSettings);
+      } else {
+        callback(null);
+      }
+    },
+    (error) => {
+      console.error("Meal settings listener error:", error);
+      onError?.(error);
     }
-  });
+  );
 }
 
 export function subscribeToCafeterias(
-  callback: (cafeterias: Cafeteria[]) => void
+  callback: (cafeterias: Cafeteria[]) => void,
+  onError?: (error: unknown) => void
 ) {
   const cafeteriasRef = collection(db, "cafeterias");
 
-  return onSnapshot(cafeteriasRef, (snapshot) => {
-    const cafeterias = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        cafeteriaId: data.cafeteriaId || doc.id,
-        cafeteriaType: data.cafeteriaType || 'christian',
-        name: data.name || '',
-        nameAmharic: data.nameAmharic,
-        location: data.location || '',
-        openHours: data.openHours || {
-          breakfast: { start: '06:00', end: '09:00' },
-          lunch: { start: '11:30', end: '14:00' },
-          dinner: { start: '17:30', end: '20:00' },
-        },
-        isActive: data.isActive ?? true,
-      } as Cafeteria;
-    });
-    callback(cafeterias);
-  });
+  return onSnapshot(
+    cafeteriasRef,
+    (snapshot) => {
+      const cafeterias = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          cafeteriaId: data.cafeteriaId || doc.id,
+          cafeteriaType: data.cafeteriaType || 'christian',
+          name: data.name || '',
+          nameAmharic: data.nameAmharic,
+          location: data.location || '',
+          openHours: data.openHours || {
+            breakfast: { start: '06:00', end: '09:00' },
+            lunch: { start: '11:30', end: '14:00' },
+            dinner: { start: '17:30', end: '20:00' },
+          },
+          isActive: data.isActive ?? true,
+        } as Cafeteria;
+      });
+      callback(cafeterias);
+    },
+    (error) => {
+      console.error("Cafeterias listener error:", error);
+      onError?.(error);
+    }
+  );
 }
 
 export function subscribeToMealLogs(
   callback: (logs: MealLog[]) => void,
-  filters?: { cafeteriaId?: string; limit?: number }
+  filters?: { cafeteriaId?: string; limit?: number },
+  onError?: (error: unknown) => void
 ) {
   const logsRef = collection(db, "mealLogs");
   const constraints: QueryConstraint[] = [];
@@ -482,32 +510,39 @@ export function subscribeToMealLogs(
 
   const q = query(logsRef, ...constraints);
 
-  return onSnapshot(q, (snapshot) => {
-    let logs = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        studentId: data.studentId || '',
-        studentName: data.studentName || '',
-        mealType: data.mealType || 'lunch',
-        cafeteriaId: data.cafeteriaId || '',
-        cafeteriaName: data.cafeteriaName || '',
-        timestamp: data.timestamp?.toDate() || new Date(),
-        result: data.result || 'denied',
-        reason: data.reason,
-        cashierId: data.cashierId,
-        isOverride: data.isOverride,
-        overrideReason: data.overrideReason,
-        synced: data.synced ?? true,
-      } as MealLog;
-    });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      let logs = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          studentId: data.studentId || '',
+          studentName: data.studentName || '',
+          mealType: data.mealType || 'lunch',
+          cafeteriaId: data.cafeteriaId || '',
+          cafeteriaName: data.cafeteriaName || '',
+          timestamp: data.timestamp?.toDate() || new Date(),
+          result: data.result || 'denied',
+          reason: data.reason,
+          cashierId: data.cashierId,
+          isOverride: data.isOverride,
+          overrideReason: data.overrideReason,
+          synced: data.synced ?? true,
+        } as MealLog;
+      });
 
-    if (filters?.limit) {
-      logs = logs.slice(0, filters.limit);
+      if (filters?.limit) {
+        logs = logs.slice(0, filters.limit);
+      }
+
+      callback(logs);
+    },
+    (error) => {
+      console.error("Meal logs listener error:", error);
+      onError?.(error);
     }
-
-    callback(logs);
-  });
+  );
 }
 
 // Update student's last meal after successful scan

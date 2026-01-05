@@ -1,9 +1,10 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { 
-  User, 
-  signInWithEmailAndPassword, 
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import {
+  User,
+  signInWithEmailAndPassword,
   signOut as firebaseSignOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  signInAnonymously,
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<Staff | null>(null);
   const [authType, setAuthType] = useState<AuthType>(null);
   const [loading, setLoading] = useState(true);
+  const hasStaffSessionRef = useRef(false);
 
   useEffect(() => {
     // Check for staff session in localStorage
@@ -42,14 +44,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const parsedStaff = JSON.parse(storedStaff);
         setStaff(parsedStaff);
         setAuthType('staff');
+        hasStaffSessionRef.current = true;
+
+        // Ensure Firestore can read under "authenticated-only" rules
+        if (!auth.currentUser) {
+          signInAnonymously(auth).catch((e) => {
+            console.warn('Anonymous auth failed (staff session will have limited access):', e);
+          });
+        }
       } catch (e) {
         localStorage.removeItem('staff_session');
+        hasStaffSessionRef.current = false;
       }
     }
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser);
-      
+
       if (firebaseUser) {
         // Fetch admin data from Firestore
         getDoc(doc(db, 'admins', firebaseUser.uid))
@@ -70,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
       } else {
         setAdmin(null);
-        if (!staff) {
+        if (!hasStaffSessionRef.current) {
           setAuthType(null);
         }
         setLoading(false);
@@ -109,34 +120,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInStaff = async (email: string, staffId: string, role: StaffRole): Promise<Staff> => {
     const verifiedStaff = await verifyStaffLogin(email, staffId);
-    
+
     if (!verifiedStaff) {
       throw new Error('Invalid email or staff ID. Please ensure a staff account has been created for you by an admin.');
     }
-    
+
     if (verifiedStaff.role !== role) {
       throw new Error(`This account is registered as ${verifiedStaff.role === 'registrar' ? 'Registrar' : 'Cafe Service'}, not ${role === 'registrar' ? 'Registrar' : 'Cafe Service'}.`);
     }
-    
+
+    // Ensure Firestore can read under "authenticated-only" rules
+    if (!auth.currentUser) {
+      try {
+        await signInAnonymously(auth);
+      } catch (e: any) {
+        // If anonymous auth is disabled in Firebase console, staff can still log in but data may not load
+        if (e?.code === 'auth/operation-not-allowed') {
+          throw new Error('Staff login works, but data access is blocked. Enable Anonymous Authentication in Firebase console (Authentication → Sign-in method).');
+        }
+      }
+    }
+
     // Store in localStorage for persistence
     localStorage.setItem('staff_session', JSON.stringify(verifiedStaff));
+    hasStaffSessionRef.current = true;
     setStaff(verifiedStaff);
     setAuthType('staff');
-    
+
     return verifiedStaff;
   };
 
   const signOut = async () => {
-    if (authType === 'admin') {
+    // Sign out Firebase user (admin or anonymous)
+    if (auth.currentUser) {
       await firebaseSignOut(auth);
-      setAdmin(null);
     }
-    
-    if (authType === 'staff' || staff) {
-      localStorage.removeItem('staff_session');
-      setStaff(null);
-    }
-    
+
+    localStorage.removeItem('staff_session');
+    hasStaffSessionRef.current = false;
+
+    setAdmin(null);
+    setStaff(null);
     setAuthType(null);
   };
 

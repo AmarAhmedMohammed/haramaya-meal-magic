@@ -65,7 +65,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { admin, signOut } = useAuth();
+  const { admin, staff, authType, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
@@ -112,11 +112,33 @@ export function Layout({ children }: LayoutProps) {
             <ul role="list" className="flex flex-1 flex-col gap-y-2">
               {/* Main Nav Items */}
               {filterByRole(mainNavItems, admin).map((item) => {
-                const isActive = location.pathname === item.href;
+                const resolvedHref = (() => {
+                  if (item.href === "/dashboard") {
+                    if (admin?.role === "super_admin") return "/admin/dashboard";
+                    if (admin?.role === "registrar_admin") return "/registrar/dashboard";
+                    if (admin?.role === "cafeteria_manager" || admin?.role === "cashier") return "/cafe/dashboard";
+                    if (authType === "staff") {
+                      if (staff?.role === "registrar") return "/registrar/dashboard";
+                      if (staff?.role === "cafe_service") return "/cafe/dashboard";
+                    }
+                  }
+                  return item.href;
+                })();
+
+                const hideStudents =
+                  item.href === "/students" &&
+                  (authType === "staff" ||
+                    admin?.role === "super_admin" ||
+                    admin?.role === "cafeteria_manager" ||
+                    admin?.role === "cashier");
+
+                if (hideStudents) return null;
+
+                const isActive = location.pathname === resolvedHref;
                 return (
-                  <li key={item.href}>
+                  <li key={resolvedHref}>
                     <Link
-                      to={item.href}
+                      to={resolvedHref}
                       className={cn(
                         "group flex gap-x-3 rounded-lg p-3 text-sm font-medium transition-all duration-200",
                         isActive
@@ -272,11 +294,33 @@ export function Layout({ children }: LayoutProps) {
             </div>
             <nav className="px-4 py-2">
               {filterByRole(mainNavItems, admin).map((item) => {
-                const isActive = location.pathname === item.href;
+                const resolvedHref = (() => {
+                  if (item.href === "/dashboard") {
+                    if (admin?.role === "super_admin") return "/admin/dashboard";
+                    if (admin?.role === "registrar_admin") return "/registrar/dashboard";
+                    if (admin?.role === "cafeteria_manager" || admin?.role === "cashier") return "/cafe/dashboard";
+                    if (authType === "staff") {
+                      if (staff?.role === "registrar") return "/registrar/dashboard";
+                      if (staff?.role === "cafe_service") return "/cafe/dashboard";
+                    }
+                  }
+                  return item.href;
+                })();
+
+                const hideStudents =
+                  item.href === "/students" &&
+                  (authType === "staff" ||
+                    admin?.role === "super_admin" ||
+                    admin?.role === "cafeteria_manager" ||
+                    admin?.role === "cashier");
+
+                if (hideStudents) return null;
+
+                const isActive = location.pathname === resolvedHref;
                 return (
                   <Link
-                    key={item.href}
-                    to={item.href}
+                    key={resolvedHref}
+                    to={resolvedHref}
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
                       "flex gap-x-3 rounded-lg p-3 text-sm font-medium mb-1",
