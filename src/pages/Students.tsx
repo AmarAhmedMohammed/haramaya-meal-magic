@@ -91,7 +91,7 @@ const emptyFormData: StudentFormData = {
 
 export default function Students() {
   const { t, language } = useLanguage();
-  const { admin } = useAuth();
+  const { admin, loading: authLoading, authType, staff } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [students, setStudents] = useState<Student[]>([]);
@@ -108,15 +108,36 @@ export default function Students() {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [formData, setFormData] = useState<StudentFormData>(emptyFormData);
 
-  // Subscribe to real-time student updates
+  // Subscribe to real-time student updates (admins only)
   useEffect(() => {
-    const unsubscribe = subscribeToStudents((updatedStudents) => {
-      setStudents(updatedStudents);
+    if (authLoading) return;
+
+    const canReadStudents = authType === 'admin' && !!admin;
+
+    if (!canReadStudents) {
+      setStudents([]);
       setLoading(false);
-    });
+      return;
+    }
+
+    const unsubscribe = subscribeToStudents(
+      (updatedStudents) => {
+        setStudents(updatedStudents);
+        setLoading(false);
+      },
+      (error) => {
+        setLoading(false);
+        toast({
+          title: "Data access error",
+          description: "Cannot load students. Please check your permissions.",
+          variant: "destructive",
+        });
+        console.error("Students listener error:", error);
+      }
+    );
 
     return () => unsubscribe();
-  }, []);
+  }, [admin, authType, authLoading, toast]);
 
   const filteredStudents = students.filter(
     (student) =>
