@@ -91,7 +91,7 @@ const emptyFormData: StudentFormData = {
 
 export default function Students() {
   const { t, language } = useLanguage();
-  const { admin } = useAuth();
+  const { admin, loading: authLoading, authType, staff } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const {

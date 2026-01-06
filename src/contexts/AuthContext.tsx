@@ -43,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [staff, setStaff] = useState<Staff | null>(null);
   const [authType, setAuthType] = useState<AuthType>(null);
   const [loading, setLoading] = useState(true);
+  const hasStaffSessionRef = useRef(false);
 
   useEffect(() => {
     // Check for staff session in localStorage
@@ -80,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
       } else {
         setAdmin(null);
-        if (!staff) {
+        if (!hasStaffSessionRef.current) {
           setAuthType(null);
         }
         setLoading(false);

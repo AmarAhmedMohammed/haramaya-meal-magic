@@ -3,6 +3,8 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useRef,
+  useCallback,
   ReactNode,
 } from "react";
 import {
@@ -11,6 +13,7 @@ import {
   subscribeToMealSettings,
 } from "@/lib/firestore";
 import { MealType } from "@/types";
+import { getCurrentMealType } from "@/lib/mealLogic";
 
 interface MealWindow {
   start: string;
@@ -55,6 +58,38 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<MealSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
 
+  // Check if current time is within any meal window and auto-update scanning
+  const checkAndUpdateScanningStatus = useCallback(async () => {
+    const systemSettings = {
+      mealWindows: settings.mealWindows,
+      lockDurationMinutes: settings.lockDurationMinutes,
+      showEthiopianDate: false,
+      defaultLanguage: 'en' as const,
+      scanningEnabled: settings.scanningEnabled,
+    };
+    
+    const currentMeal = getCurrentMealType(new Date(), systemSettings);
+    const shouldBeEnabled = currentMeal !== null;
+    
+    // Only update if the status needs to change
+    if (shouldBeEnabled !== settings.scanningEnabled) {
+      const newSettings = {
+        ...settings,
+        scanningEnabled: shouldBeEnabled,
+      };
+      setSettings(newSettings);
+      try {
+        await updateFirestoreSettings(newSettings);
+        console.log(`Auto-scanning ${shouldBeEnabled ? 'enabled' : 'disabled'} - ${currentMeal ? `${currentMeal} time` : 'outside meal hours'}`);
+      } catch (error) {
+        console.error("Error auto-updating scanning status:", error);
+      }
+    }
+  }, [settings]);
+
+  // Set up interval to check meal times every minute
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     // Load initial settings from Firestore
     const loadSettings = async () => {
@@ -92,6 +127,25 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
 
     return () => unsubscribe();
   }, []);
+
+  // Auto-check scanning status every minute based on meal times
+  useEffect(() => {
+    if (loading) return;
+
+    // Initial check
+    checkAndUpdateScanningStatus();
+
+    // Check every minute
+    intervalRef.current = setInterval(() => {
+      checkAndUpdateScanningStatus();
+    }, 60000); // 60 seconds
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [loading, checkAndUpdateScanningStatus]);
 
   const updateMealWindow = async (meal: MealType, window: MealWindow) => {
     // Functional update to avoid race conditions

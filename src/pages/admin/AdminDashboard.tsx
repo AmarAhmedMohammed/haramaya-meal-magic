@@ -143,25 +143,61 @@ export default function AdminDashboard() {
   const isSuperAdmin = admin?.role === "super_admin";
 
   useEffect(() => {
-    const unsubStudents = subscribeToStudents((updatedStudents) => {
-      setStudents(updatedStudents);
-      setLoading(false);
-    });
+    const unsubStudents = subscribeToStudents(
+      (updatedStudents) => {
+        setStudents(updatedStudents);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Students snapshot listener error:", error);
+        setLoading(false);
+        toast({
+          title: "Data access error",
+          description: "Cannot load students. Please check your Firestore permissions.",
+          variant: "destructive",
+        });
+      }
+    );
 
-    const unsubStaff = subscribeToStaff((updatedStaff) => {
-      setStaff(updatedStaff);
-    });
+    const unsubStaff = subscribeToStaff(
+      (updatedStaff) => {
+        setStaff(updatedStaff);
+      },
+      (error) => {
+        console.error("Staff snapshot listener error:", error);
+        toast({
+          title: "Data access error",
+          description: "Cannot load staff. Please check your Firestore permissions.",
+          variant: "destructive",
+        });
+      }
+    );
 
-    const unsubLogs = subscribeToMealLogs((logs) => {
-      setMealLogs(logs.slice(0, 50));
-    });
+    const unsubLogs = subscribeToMealLogs(
+      (logs) => {
+        setMealLogs(logs.slice(0, 50));
+      },
+      undefined,
+      (error) => {
+        console.error("Meal logs snapshot listener error:", error);
+      }
+    );
 
     return () => {
       unsubStudents();
       unsubStaff();
       unsubLogs();
     };
-  }, []);
+  }, [toast]);
+
+  // Wait for auth init (prevents redirect flicker)
+  if (authLoading) {
+    return (
+      <Layout>
+        <div className="py-10 text-center text-muted-foreground">Loading...</div>
+      </Layout>
+    );
+  }
 
   // Redirect if not admin (wait for auth loading)
   if (authLoading) {

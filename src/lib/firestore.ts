@@ -384,7 +384,10 @@ export async function getMealLogs(filters?: {
 // REAL-TIME LISTENERS
 // =============================================
 
-export function subscribeToStudents(callback: (students: Student[]) => void) {
+export function subscribeToStudents(
+  callback: (students: Student[]) => void,
+  onError?: (error: unknown) => void
+) {
   const studentsRef = collection(db, "students");
 
   return onSnapshot(studentsRef, (snapshot) => {
@@ -420,7 +423,8 @@ export function subscribeToStudents(callback: (students: Student[]) => void) {
 }
 
 export function subscribeToMealSettings(
-  callback: (settings: SystemSettings | null) => void
+  callback: (settings: SystemSettings | null) => void,
+  onError?: (error: unknown) => void
 ) {
   const settingsRef = doc(db, "settings", "mealSettings");
 
@@ -441,11 +445,12 @@ export function subscribeToMealSettings(
     } else {
       callback(null);
     }
-  });
+  );
 }
 
 export function subscribeToCafeterias(
-  callback: (cafeterias: Cafeteria[]) => void
+  callback: (cafeterias: Cafeteria[]) => void,
+  onError?: (error: unknown) => void
 ) {
   const cafeteriasRef = collection(db, "cafeterias");
 
@@ -473,7 +478,8 @@ export function subscribeToCafeterias(
 
 export function subscribeToMealLogs(
   callback: (logs: MealLog[]) => void,
-  filters?: { cafeteriaId?: string; limit?: number }
+  filters?: { cafeteriaId?: string; limit?: number },
+  onError?: (error: unknown) => void
 ) {
   const logsRef = collection(db, "mealLogs");
   const constraints: QueryConstraint[] = [];
@@ -506,12 +512,17 @@ export function subscribeToMealLogs(
       } as MealLog;
     });
 
-    if (filters?.limit) {
-      logs = logs.slice(0, filters.limit);
-    }
+      if (filters?.limit) {
+        logs = logs.slice(0, filters.limit);
+      }
 
-    callback(logs);
-  });
+      callback(logs);
+    },
+    (error) => {
+      console.error("Meal logs listener error:", error);
+      onError?.(error);
+    }
+  );
 }
 
 // Update student's last meal after successful scan

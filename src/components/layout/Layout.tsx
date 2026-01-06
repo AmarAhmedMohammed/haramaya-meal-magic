@@ -9,7 +9,6 @@ import {
   Menu,
   X,
   Languages,
-  CreditCard,
   Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,12 +44,6 @@ const mainNavItems: NavItem[] = [
 
 const adminNavItems: NavItem[] = [
   {
-    icon: <CreditCard className="w-5 h-5" />,
-    label: "ID Cards",
-    href: "/admin/id-cards",
-    roles: ["super_admin"],
-  },
-  {
     icon: <Shield className="w-5 h-5" />,
     label: "Manage Admins",
     href: "/admin/manage",
@@ -72,7 +65,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { admin, staff, signOut } = useAuth();
+  const { admin, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -132,23 +125,11 @@ export function Layout({ children }: LayoutProps) {
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-2">
               {filterByRole(mainNavItems, admin).map((item) => {
-                let href = item.href;
-                if (item.label === "Dashboard") {
-                  if (admin) {
-                    href = "/admin/dashboard";
-                  } else if (staff) {
-                    href =
-                      staff.role === "registrar"
-                        ? "/registrar/dashboard"
-                        : "/cafe/dashboard";
-                  }
-                }
-
-                const isActive = location.pathname === href;
+                const isActive = location.pathname === item.href;
                 return (
-                  <li key={item.label}>
+                  <li key={item.href}>
                     <Link
-                      to={href}
+                      to={item.href}
                       className={cn(
                         "group flex gap-x-3 rounded-xl p-3 text-sm font-medium transition-all duration-200",
                         isActive
@@ -305,23 +286,11 @@ export function Layout({ children }: LayoutProps) {
             </div>
             <nav className="px-4 py-2">
               {filterByRole(mainNavItems, admin).map((item) => {
-                let href = item.href;
-                if (item.label === "Dashboard") {
-                  if (admin) {
-                    href = "/admin/dashboard";
-                  } else if (staff) {
-                    href =
-                      staff.role === "registrar"
-                        ? "/registrar/dashboard"
-                        : "/cafe/dashboard";
-                  }
-                }
-
-                const isActive = location.pathname === href;
+                const isActive = location.pathname === item.href;
                 return (
                   <Link
-                    key={item.label}
-                    to={href}
+                    key={item.href}
+                    to={item.href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
                       "flex gap-x-3 rounded-xl p-3 text-sm font-medium transition-all duration-200 mb-1",
