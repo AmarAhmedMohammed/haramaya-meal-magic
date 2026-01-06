@@ -122,12 +122,19 @@ export default function Settings() {
               </span>
               <Switch
                 checked={localSettings.scanningEnabled}
-                onCheckedChange={(checked) =>
+                onCheckedChange={(checked) => {
                   setLocalSettings((prev) => ({
                     ...prev,
                     scanningEnabled: checked,
-                  }))
-                }
+                  }));
+                  // Save immediately to Firestore for real-time updates
+                  updateScanningEnabled(checked);
+                  toast.success(
+                    checked
+                      ? "Scanning enabled across all cafeterias"
+                      : "Scanning paused across all cafeterias"
+                  );
+                }}
               />
             </div>
           </CardContent>

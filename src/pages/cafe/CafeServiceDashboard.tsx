@@ -28,9 +28,11 @@ import {
   Moon,
   Volume2,
   VolumeX,
+  Camera,
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import huLogo from "@/assets/hu-logo.png";
+import { InlineScanner } from "@/components/scanner/InlineScanner";
 
 // Status message types
 type ScanStatus = "idle" | "granted" | "denied" | "warning" | "error";
@@ -508,7 +510,7 @@ export default function CafeServiceDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 container mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
+      <main className="flex-1 container mx-auto px-4 py-6 pb-40 flex flex-col lg:flex-row gap-6 overflow-y-auto">
         {/* Scanner Section */}
         <div className="lg:flex-1 space-y-6">
           {/* Scan Input */}
@@ -534,188 +536,119 @@ export default function CafeServiceDashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
                 onKeyDown={handleKeyDown}
-                className="pl-12 h-14 text-lg font-mono"
+                className="pl-12 pr-36 h-14 text-lg font-mono"
                 autoFocus
                 disabled={isProcessing}
               />
-              <Button
-                className="absolute right-2 top-1/2 -translate-y-1/2"
-                onClick={() => processScan(searchQuery)}
-                disabled={isProcessing || !searchQuery.trim()}
-              >
-                Verify
-              </Button>
+
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
+                <Button
+                  onClick={() => processScan(searchQuery)}
+                  disabled={isProcessing || !searchQuery.trim()}
+                  className="h-10"
+                >
+                  Verify
+                </Button>
+              </div>
             </div>
           </Card>
 
-          {/* Scan Result Display */}
-          <AnimatePresence mode="wait">
-            {scanResult.status !== "idle" && (
-              <motion.div
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -20, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card
-                  className={`overflow-hidden border-2 ${
-                    scanResult.status === "granted"
-                      ? "border-success bg-success/5"
-                      : scanResult.status === "denied"
-                      ? "border-destructive bg-destructive/5"
-                      : scanResult.status === "warning"
-                      ? "border-warning bg-warning/5"
-                      : "border-destructive bg-destructive/5"
-                  }`}
-                >
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-6">
-                      {/* Status Icon */}
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ type: "spring", damping: 10 }}
-                        className={`p-4 rounded-full ${getStatusColor()}`}
-                      >
-                        {scanResult.status === "granted" ? (
-                          <CheckCircle2 className="w-10 h-10 text-white" />
-                        ) : scanResult.status === "warning" ? (
-                          <AlertTriangle className="w-10 h-10 text-white" />
-                        ) : (
-                          <XCircle className="w-10 h-10 text-white" />
-                        )}
-                      </motion.div>
-
-                      {/* Message */}
-                      <div className="flex-1">
-                        <h3
-                          className={`text-2xl font-bold ${
-                            scanResult.status === "granted"
-                              ? "text-success"
-                              : scanResult.status === "warning"
-                              ? "text-warning"
-                              : "text-destructive"
-                          }`}
-                        >
-                          {scanResult.message}
-                        </h3>
-                        {scanResult.subMessage && (
-                          <p className="text-lg text-muted-foreground mt-1">
-                            {scanResult.subMessage}
-                          </p>
-                        )}
-
-                        {scanResult.student && (
-                          <div className="mt-4 p-3 bg-muted rounded-lg">
-                            <p className="font-medium">
-                              {scanResult.student.fullName}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {scanResult.student.studentId} •{" "}
-                              {scanResult.student.department}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Idle State */}
+          {/* Inline Camera Scanner */}
           {scanResult.status === "idle" && !isProcessing && (
-            <Card variant="elevated" className="p-8 text-center">
-              <div className="flex flex-col items-center">
-                <div className="p-6 bg-accent/10 rounded-full mb-4">
-                  <ScanLine className="w-16 h-16 text-accent" />
-                </div>
-                <h3 className="text-xl font-medium mb-2">Ready to Scan</h3>
-                <p className="text-muted-foreground">
-                  Scan student ID barcode or enter ID manually
-                </p>
-              </div>
-            </Card>
+            <div>
+              <InlineScanner
+                isActive={true}
+                onScan={(code) => {
+                  processScan(code);
+                }}
+              />
+            </div>
           )}
-
+          {/* Scan Result Display */}
           {/* Processing State */}
           {isProcessing && (
-            <Card variant="elevated" className="p-8 text-center">
-              <div className="flex flex-col items-center">
-                <div className="animate-pulse p-6 bg-accent/20 rounded-full mb-4">
-                  <ScanLine className="w-16 h-16 text-accent animate-bounce" />
+            <Card className="h-[400px] flex flex-col items-center justify-center p-8 text-center animate-in fade-in zoom-in-95 duration-200">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 border-4 border-[#006d5b]/20 border-t-[#006d5b] rounded-full animate-spin" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <User className="w-8 h-8 text-[#006d5b]/40 animate-pulse" />
                 </div>
-                <h3 className="text-xl font-medium">Processing...</h3>
               </div>
+              <h3 className="text-xl font-bold text-[#006d5b] mb-2">
+                Processing Identity
+              </h3>
+              <p className="text-muted-foreground max-w-xs mx-auto">
+                Verifying student credentials and checking meal eligibility...
+              </p>
             </Card>
           )}
+
+          {/* Success State */}
+          {scanResult.status === "granted" && scanResult.student && (
+            <div className="animate-in slide-in-from-bottom-4 duration-300">
+              <ScanResultCard
+                status="success"
+                student={scanResult.student}
+                message={scanResult.message}
+                timestamp={new Date().toLocaleTimeString()}
+                mealType={settings.activeMeal}
+                onDismiss={resetScanner}
+              />
+            </div>
+          )}
+
+          {/* Error State */}
+          {(scanResult.status === "denied" ||
+            scanResult.status === "error" ||
+            scanResult.status === "warning") && (
+            <div className="animate-in shake duration-300">
+              <ScanResultCard
+                status="error"
+                message={scanResult.message}
+                timestamp={new Date().toLocaleTimeString()}
+                onDismiss={resetScanner}
+              />
+            </div>
+          )}
+
+          {/* Side Panel - Student Photo & Info */}
         </div>
 
-        {/* Student Photo Section */}
-        <div className="lg:w-80">
-          <Card variant="elevated" className="sticky top-24">
-            <CardContent className="p-4">
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">
-                Student Photo
-              </h3>
-
-              <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden">
-                {scanResult.student?.photoURL ? (
-                  <motion.img
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    src={scanResult.student.photoURL}
-                    alt={scanResult.student.fullName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <User className="w-20 h-20 text-muted-foreground/30" />
-                  </div>
-                )}
-              </div>
-
-              {scanResult.student && (
-                <div className="mt-4 space-y-2">
-                  <p className="font-semibold text-lg text-center">
-                    {scanResult.student.fullName}
-                  </p>
-                  <div className="flex justify-center gap-2">
-                    <Badge variant="outline">
-                      {scanResult.student.department}
-                    </Badge>
-                    <Badge variant="outline">
-                      Year {scanResult.student.year}
-                    </Badge>
-                  </div>
-                  <div className="flex justify-center">
-                    <Badge
-                      variant={
-                        scanResult.student.cafeteriaType === staffCafeteria
-                          ? "granted"
-                          : "denied"
-                      }
-                    >
-                      {getCafeteriaLabel(scanResult.student.cafeteriaType)}
-                    </Badge>
-                  </div>
-                </div>
+        {/* Side Panel - Student Photo & Info */}
+        <div className="hidden lg:block w-80 shrink-0">
+          <Card className="h-full border-2 p-4 flex flex-col items-center justify-start bg-white/50 backdrop-blur-sm">
+            <h3 className="text-sm font-serif font-bold text-[#1a4d2e]/70 mb-4 tracking-wide w-full text-left border-b pb-2">
+              Student Photo
+            </h3>
+            <div className="w-full aspect-[3/4] rounded-xl bg-[#f0f2f0] border-2 border-dashed border-[#1a4d2e]/10 flex items-center justify-center overflow-hidden shadow-inner group transition-all hover:border-[#1a4d2e]/30">
+              {isProcessing ? (
+                <Skeleton className="w-full h-full bg-[#e2e8e2] animate-pulse" />
+              ) : scanResult.student?.photoURL ? (
+                <img
+                  src={scanResult.student.photoURL}
+                  alt="Student"
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+              ) : (
+                <User className="w-24 h-24 text-[#cbd5cc]" />
               )}
-            </CardContent>
+            </div>
           </Card>
         </div>
       </main>
 
       {/* Footer Status Bar */}
-      <footer className="sticky bottom-0 bg-sidebar border-t border-border py-2 px-4">
-        <div className="container mx-auto flex items-center justify-between text-sm">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-[#1a4d2e] border-t border-white/10 py-2 px-4 shadow-lg shrink-0">
+        <div className="container mx-auto flex items-center justify-between text-sm text-white/90">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <Badge variant={settings.scanningEnabled ? "granted" : "denied"}>
+            <Badge
+              variant={settings.scanningEnabled ? "granted" : "denied"}
+              className="border-white/20"
+            >
               {settings.scanningEnabled ? "Scanning Active" : "Scanning Paused"}
             </Badge>
-            <div className="flex items-center gap-4 text-sidebar-foreground/70">
-              <div className="flex items-center gap-1.5 border-l border-white/10 pl-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5 border-l border-white/20 pl-4">
                 <Clock className="w-3.5 h-3.5" />
                 <span>
                   {new Date().toLocaleTimeString([], {
@@ -725,8 +658,8 @@ export default function CafeServiceDashboard() {
                   })}
                 </span>
               </div>
-              <div className="hidden sm:flex items-center gap-2 border-l border-white/10 pl-4">
-                <span className="text-[10px] uppercase font-bold text-white/40">
+              <div className="hidden sm:flex items-center gap-2 border-l border-white/20 pl-4">
+                <span className="text-[10px] uppercase font-bold opacity-60">
                   Settings:
                 </span>
                 <span className="text-xs font-mono">
@@ -740,11 +673,13 @@ export default function CafeServiceDashboard() {
               </div>
             </div>
           </div>
-          <div className="text-sidebar-foreground/70 flex items-center gap-3">
+          <div className="flex items-center gap-3 opacity-80">
             <span>Staff ID: {staff?.staffId}</span>
           </div>
         </div>
       </footer>
+
+      {/* QR/Barcode Scanner Modal */}
     </div>
   );
 }
