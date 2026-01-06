@@ -506,25 +506,27 @@ export function subscribeToMealLogs(
 
   const q = query(logsRef, ...constraints);
 
-  return onSnapshot(q, (snapshot) => {
-    let logs = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        studentId: data.studentId || "",
-        studentName: data.studentName || "",
-        mealType: data.mealType || "lunch",
-        cafeteriaId: data.cafeteriaId || "",
-        cafeteriaName: data.cafeteriaName || "",
-        timestamp: data.timestamp?.toDate() || new Date(),
-        result: data.result || "denied",
-        reason: data.reason,
-        cashierId: data.cashierId,
-        isOverride: data.isOverride,
-        overrideReason: data.overrideReason,
-        synced: data.synced ?? true,
-      } as MealLog;
-    });
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      let logs = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          studentId: data.studentId || "",
+          studentName: data.studentName || "",
+          mealType: data.mealType || "lunch",
+          cafeteriaId: data.cafeteriaId || "",
+          cafeteriaName: data.cafeteriaName || "",
+          timestamp: data.timestamp?.toDate() || new Date(),
+          result: data.result || "denied",
+          reason: data.reason,
+          cashierId: data.cashierId,
+          isOverride: data.isOverride,
+          overrideReason: data.overrideReason,
+          synced: data.synced ?? true,
+        } as MealLog;
+      });
 
       if (filters?.limit) {
         logs = logs.slice(0, filters.limit);
