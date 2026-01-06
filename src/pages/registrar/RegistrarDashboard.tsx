@@ -52,8 +52,8 @@ import { subscribeToStudents, getAllStudents } from "@/lib/firestore";
 import { useStudents } from "@/contexts/StudentsContext";
 import { createSupportTicket } from "@/lib/staffAuth";
 import { Student, CafeStatus, CafeteriaType } from "@/types";
-import { ref, uploadString, getDownloadURL } from "firebase/storage";
-import { storage } from "@/lib/firebase";
+// import { ref, uploadString, getDownloadURL } from "firebase/storage";
+// import { storage } from "@/lib/firebase";
 import {
   UserPlus,
   Camera,
@@ -68,6 +68,7 @@ import {
   X,
   RotateCcw,
   Send,
+  Upload,
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import huLogo from "@/assets/hu-logo.png";
@@ -136,6 +137,7 @@ export default function RegistrarDashboard() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -260,49 +262,45 @@ export default function RegistrarDashboard() {
     startCamera();
   };
 
-  const uploadPhoto = async (studentId: string): Promise<string | null> => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid File",
+        description: "Please select an image file (JPG, PNG, etc.)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File Too Large",
+        description: "Please select an image smaller than 5MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      setCapturedImage(result);
+      stopCamera();
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const processPhoto = async (studentId: string): Promise<string | null> => {
     if (!capturedImage) return null;
 
-    try {
-      console.log(`Starting photo upload for student: ${studentId}`);
-
-      // Create a promise that rejects after 30 seconds
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("STORAGE_TIMEOUT")), 30000)
-      );
-
-      // Upload to Firebase Storage using uploadString for better reliability with base64
-      const storageRef = ref(storage, `student-photos/${studentId}.jpg`);
-
-      // Race the upload against the timeout
-      await Promise.race([
-        uploadString(storageRef, capturedImage, "data_url"),
-        timeoutPromise,
-      ]).then(() => {
-        console.log("Photo upload string completed successfully");
-      });
-
-      console.log("Fetching download URL...");
-      const downloadURL = await getDownloadURL(storageRef);
-      console.log("Photo upload complete, URL obtained");
-      return downloadURL;
-    } catch (error: any) {
-      console.error("Error uploading photo:", error);
-      if (
-        error.code === "storage/retry-limit-exceeded" ||
-        error.message === "STORAGE_TIMEOUT"
-      ) {
-        throw new Error(
-          "Upload timed out. Please check your internet connection and try again."
-        );
-      }
-      if (error.code === "storage/unauthorized") {
-        throw new Error(
-          "Permission denied. Please ask an admin to check storage rules."
-        );
-      }
-      throw error;
-    }
+    // Return base64 string directly to be stored in Firestore
+    console.log(`Using base64 photo for student: ${studentId}`);
+    return capturedImage;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -375,10 +373,10 @@ export default function RegistrarDashboard() {
           `Registration for student ID: ${originalStudentId} (Sanitized: ${sanitizedDocId})`
         );
 
-        // 2. Upload photo first
-        console.log("Handling photo upload...");
-        const photoURL = await uploadPhoto(sanitizedDocId);
-        console.log("Photo URL:", photoURL ? "Success" : "None");
+        // 2. Process photo (get base64)
+        console.log("Processing photo...");
+        const photoURL = await processPhoto(sanitizedDocId);
+        console.log("Photo processed:", photoURL ? "Success (Base64)" : "None");
 
         // 3. Create student using context
         console.log("Calling contextAddStudent...");
@@ -827,14 +825,31 @@ export default function RegistrarDashboard() {
                           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
                             <User className="w-16 h-16 mb-4" />
                             <p className="text-sm mb-4">No photo captured</p>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              onClick={startCamera}
-                            >
-                              <Camera className="w-4 h-4 mr-2" />
-                              Open Camera
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                onClick={startCamera}
+                              >
+                                <Camera className="w-4 h-4 mr-2" />
+                                Camera
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => fileInputRef.current?.click()}
+                              >
+                                <Upload className="w-4 h-4 mr-2" />
+                                Upload
+                              </Button>
+                            </div>
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleFileUpload}
+                            />
                           </div>
                         )}
                       </div>

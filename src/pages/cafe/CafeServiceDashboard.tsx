@@ -59,6 +59,7 @@ export default function CafeServiceDashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentMeal, setCurrentMeal] = useState<MealType | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [scannerActive, setScannerActive] = useState(true);
 
   // Scanner refs
   const scannerRef = useRef<HTMLDivElement>(null);
@@ -563,10 +564,12 @@ export default function CafeServiceDashboard() {
           {scanResult.status === "idle" && !isProcessing && (
             <div>
               <InlineScanner
-                isActive={true}
+                isActive={scannerActive}
                 onScan={(code) => {
                   processScan(code);
                 }}
+                onStop={() => setScannerActive(false)}
+                onStart={() => setScannerActive(true)}
               />
             </div>
           )}
@@ -597,14 +600,23 @@ export default function CafeServiceDashboard() {
                   <div className="flex items-center gap-4">
                     <CheckCircle2 className="w-12 h-12 text-green-600" />
                     <div>
-                      <h3 className="text-xl font-bold text-green-800">{scanResult.message}</h3>
-                      <p className="text-green-700">{scanResult.student.fullName}</p>
+                      <h3 className="text-xl font-bold text-green-800">
+                        {scanResult.message}
+                      </h3>
+                      <p className="text-green-700">
+                        {scanResult.student.fullName}
+                      </p>
                       <p className="text-sm text-green-600">
-                        {currentMeal?.toUpperCase()} - {new Date().toLocaleTimeString()}
+                        {currentMeal?.toUpperCase()} -{" "}
+                        {new Date().toLocaleTimeString()}
                       </p>
                     </div>
                   </div>
-                  <Button onClick={resetScanner} className="mt-4 w-full" variant="outline">
+                  <Button
+                    onClick={resetScanner}
+                    className="mt-4 w-full"
+                    variant="outline"
+                  >
                     Scan Next
                   </Button>
                 </CardContent>
@@ -622,14 +634,22 @@ export default function CafeServiceDashboard() {
                   <div className="flex items-center gap-4">
                     <XCircle className="w-12 h-12 text-red-600" />
                     <div>
-                      <h3 className="text-xl font-bold text-red-800">{scanResult.message}</h3>
+                      <h3 className="text-xl font-bold text-red-800">
+                        {scanResult.message}
+                      </h3>
                       {scanResult.subMessage && (
                         <p className="text-red-700">{scanResult.subMessage}</p>
                       )}
-                      <p className="text-sm text-red-600">{new Date().toLocaleTimeString()}</p>
+                      <p className="text-sm text-red-600">
+                        {new Date().toLocaleTimeString()}
+                      </p>
                     </div>
                   </div>
-                  <Button onClick={resetScanner} className="mt-4 w-full" variant="outline">
+                  <Button
+                    onClick={resetScanner}
+                    className="mt-4 w-full"
+                    variant="outline"
+                  >
                     Try Again
                   </Button>
                 </CardContent>

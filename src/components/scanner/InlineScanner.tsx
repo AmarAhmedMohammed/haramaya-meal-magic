@@ -7,10 +7,14 @@ import { AlertCircle, RotateCw } from "lucide-react";
 interface InlineScannerProps {
   onScan: (code: string) => void;
   isActive: boolean;
+  onStop?: () => void;
+  onStart?: () => void;
 }
 
-export const InlineScanner = React.forwardRef<HTMLDivElement, InlineScannerProps>(
-  function InlineScanner({ onScan, isActive }, ref) {
+export const InlineScanner = React.forwardRef<
+  HTMLDivElement,
+  InlineScannerProps
+>(function InlineScanner({ onScan, isActive, onStop, onStart }, ref) {
   const [error, setError] = useState<string>("");
   const [scanning, setScanning] = useState(false);
   const [initializing, setInitializing] = useState(false);
@@ -19,17 +23,44 @@ export const InlineScanner = React.forwardRef<HTMLDivElement, InlineScannerProps
   const mountedRef = useRef(true);
 
   const stopScanner = useCallback(async () => {
-     try {
-        if (scannerRef.current && scannerRef.current.isScanning) {
-            await scannerRef.current.stop();
-            scannerRef.current.clear();
+    try {
+      // First, stop all video tracks directly (before html5-qrcode)
+      const allVideos = document.querySelectorAll("video");
+      allVideos.forEach((video) => {
+        if (video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          stream.getTracks().forEach((track) => {
+            track.stop();
+          });
+          video.srcObject = null;
         }
-     } catch(e) {
-         console.warn("Error stopping scanner", e);
-     }
-     if (mountedRef.current) {
-         setScanning(false);
-     }
+      });
+
+      // Then stop the html5-qrcode scanner
+      if (scannerRef.current) {
+        try {
+          if (scannerRef.current.isScanning) {
+            await scannerRef.current.stop();
+          }
+          scannerRef.current.clear();
+        } catch (e) {
+          console.warn("Error in html5-qrcode stop:", e);
+        }
+        scannerRef.current = null;
+      }
+
+      // Clear the DOM container completely
+      const container = document.getElementById(regionId);
+      if (container) {
+        container.innerHTML = "";
+      }
+    } catch (e) {
+      console.warn("Error stopping scanner", e);
+      scannerRef.current = null;
+    }
+    if (mountedRef.current) {
+      setScanning(false);
+    }
   }, []);
 
   const startScanner = useCallback(async () => {
@@ -38,45 +69,46 @@ export const InlineScanner = React.forwardRef<HTMLDivElement, InlineScannerProps
     setError("");
 
     try {
-        // Ensure clean slate
-        await stopScanner();
+      // Stop and clean up first
+      await stopScanner();
 
-        // Create instance if not exists
-        if (!scannerRef.current) {
-            scannerRef.current = new Html5Qrcode(regionId);
+      // Small delay to ensure camera is fully released
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Create new instance
+      scannerRef.current = new Html5Qrcode(regionId);
+
+      const config = {
+        fps: 10,
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+      };
+
+      // Prefer environment camera
+      await scannerRef.current.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          // Success callback
+          onScan(decodedText);
+        },
+        () => {
+          // Ignore parse errors
         }
+      );
 
-        const config = {
-             fps: 10,
-             qrbox: { width: 250, height: 250 },
-             aspectRatio: 1.0
-        };
-
-        // Prefer environment camera
-        await scannerRef.current.start(
-            { facingMode: "environment" }, 
-            config,
-            (decodedText) => {
-                // Success callback
-                onScan(decodedText);
-            },
-            () => {
-                // Ignore parse errors
-            }
-        );
-
-        if (mountedRef.current) {
-            setScanning(true);
-            setInitializing(false);
-        }
-
+      if (mountedRef.current) {
+        setScanning(true);
+        setInitializing(false);
+      }
     } catch (err: unknown) {
-        if (mountedRef.current) {
-            setInitializing(false);
-            console.error("Error starting html5-qrcode:", err);
-            const errorMessage = err instanceof Error ? err.message : "Could not start camera";
-            setError("Camera error: " + errorMessage);
-        }
+      if (mountedRef.current) {
+        setInitializing(false);
+        console.error("Error starting html5-qrcode:", err);
+        const errorMessage =
+          err instanceof Error ? err.message : "Could not start camera";
+        setError("Camera Unavailable: " + errorMessage);
+      }
     }
   }, [onScan, stopScanner]);
 
@@ -88,76 +120,75 @@ export const InlineScanner = React.forwardRef<HTMLDivElement, InlineScannerProps
     if (isActive) {
       // Start scanner immediately
       startScanner();
+    } else {
+      // Stop scanner when isActive becomes false
+      stopScanner();
     }
 
     return () => {
       mountedRef.current = false;
-      // Cleanup on unmount
+      // Cleanup on unmount - force stop
       if (scannerRef.current) {
         try {
           if (scannerRef.current.isScanning) {
-            scannerRef.current.stop().then(() => {
-              scannerRef.current?.clear();
-            }).catch(console.error);
-          } else {
-            scannerRef.current.clear();
+            scannerRef.current.stop().catch(console.error);
           }
+          scannerRef.current.clear();
         } catch (e) {
           console.error("Cleanup error", e);
         }
+        scannerRef.current = null;
       }
     };
-  }, [isActive, startScanner]);
+  }, [isActive, startScanner, stopScanner]);
 
   const handleRetry = () => {
     startScanner();
   };
 
   return (
-    <Card ref={ref} className="overflow-hidden border border-border shadow-md bg-white">
+    <Card
+      ref={ref}
+      className="overflow-hidden border border-border shadow-md bg-white"
+    >
       {/* Header - Matching Reference */}
       <div className="py-4 border-b border-gray-100 text-center">
-        <h3 className="text-xl font-bold text-[#006d5b]">
-          Student ID Scanner
-        </h3>
+        <h3 className="text-xl font-bold text-[#006d5b]">Student ID Scanner</h3>
       </div>
 
       <div className="relative p-2">
         {/* Camera View Container - Square Aspect Ratio */}
-        <div 
-          className="relative bg-black rounded-lg overflow-hidden aspect-square w-full max-w-[400px] mx-auto shadow-inner"
-        >
-           {/* The html5-qrcode library needs a div with an ID */}
-           <div id={regionId} className="w-full h-full text-[0px]" />
+        <div className="relative bg-black rounded-lg overflow-hidden aspect-square w-full max-w-[400px] mx-auto shadow-inner">
+          {/* The html5-qrcode library needs a div with an ID */}
+          <div id={regionId} className="w-full h-full text-[0px]" />
 
           {/* Loading / Error States - Overlaying the scanner div */}
           {!scanning && !error && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/70 gap-3 bg-zinc-900 z-20">
               {initializing ? (
                 <>
-                   <RotateCw className="w-8 h-8 animate-spin" />
-                   <p>Starting Camera...</p>
+                  <RotateCw className="w-8 h-8 animate-spin" />
+                  <p>Starting Camera...</p>
                 </>
               ) : (
                 <p>Camera is paused</p>
               )}
             </div>
           )}
-          
+
           {error && (
-             <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center bg-zinc-900 z-20">
-               <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
-               <p className="text-red-400 font-medium mb-4">{error}</p>
-               <Button onClick={handleRetry} variant="secondary" size="sm">
-                 Retry Camera
-               </Button>
-             </div>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-6 text-center bg-zinc-900 z-20">
+              <AlertCircle className="w-12 h-12 text-red-500 mb-2" />
+              <p className="text-red-400 font-medium mb-4">{error}</p>
+              <Button onClick={handleRetry} variant="secondary" size="sm">
+                Retry Camera
+              </Button>
+            </div>
           )}
 
           {/* UI Overlay (When Scanning) - Purely cosmetic over the video */}
           {scanning && (
             <div className="absolute inset-0 pointer-events-none z-10">
-              
               {/* Central Active Area */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px]">
                 {/* White Corners */}
@@ -167,11 +198,11 @@ export const InlineScanner = React.forwardRef<HTMLDivElement, InlineScannerProps
                 <div className="absolute bottom-0 right-0 w-8 h-8 border-r-[4px] border-b-[4px] border-white" />
 
                 {/* Animated Green Scan Line */}
-                 <div className="absolute left-0 right-0 h-[2px] bg-[#22c55e] shadow-[0_0_10px_#22c55e] animate-scan-move" />
+                <div className="absolute left-0 right-0 h-[2px] bg-[#22c55e] shadow-[0_0_10px_#22c55e] animate-scan-move" />
               </div>
             </div>
           )}
-          
+
           <style>{`
             @keyframes scan-move {
               0% { top: 0; opacity: 0; }
@@ -193,17 +224,23 @@ export const InlineScanner = React.forwardRef<HTMLDivElement, InlineScannerProps
       {/* Footer Controls */}
       <div className="p-4 max-w-[400px] mx-auto w-full">
         {scanning ? (
-           <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             className="w-full h-12 text-lg font-medium bg-[#ef4444] hover:bg-[#dc2626] shadow-sm rounded-md"
-            onClick={stopScanner}
+            onClick={() => {
+              stopScanner();
+              onStop?.();
+            }}
           >
             Stop Scanning
           </Button>
         ) : (
-           <Button 
+          <Button
             className="w-full h-12 text-lg font-medium bg-[#006d5b] hover:bg-[#005a4b] text-white shadow-sm rounded-md"
-            onClick={() => startScanner()}
+            onClick={() => {
+              startScanner();
+              onStart?.();
+            }}
             disabled={initializing}
           >
             {initializing ? "Starting..." : "Start Scanning"}
