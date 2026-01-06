@@ -9,7 +9,8 @@ interface InlineScannerProps {
   isActive: boolean;
 }
 
-export function InlineScanner({ onScan, isActive }: InlineScannerProps) {
+export const InlineScanner = React.forwardRef<HTMLDivElement, InlineScannerProps>(
+  function InlineScanner({ onScan, isActive }, ref) {
   const [error, setError] = useState<string>("");
   const [scanning, setScanning] = useState(false);
   const [initializing, setInitializing] = useState(false);
@@ -59,7 +60,7 @@ export function InlineScanner({ onScan, isActive }: InlineScannerProps) {
                 // Success callback
                 onScan(decodedText);
             },
-            (errorMessage) => {
+            () => {
                 // Ignore parse errors
             }
         );
@@ -69,11 +70,12 @@ export function InlineScanner({ onScan, isActive }: InlineScannerProps) {
             setInitializing(false);
         }
 
-    } catch (err: any) {
+    } catch (err: unknown) {
         if (mountedRef.current) {
             setInitializing(false);
             console.error("Error starting html5-qrcode:", err);
-            setError("Camera error: " + (err?.message || "Could not start camera"));
+            const errorMessage = err instanceof Error ? err.message : "Could not start camera";
+            setError("Camera error: " + errorMessage);
         }
     }
   }, [onScan, stopScanner]);
@@ -83,12 +85,29 @@ export function InlineScanner({ onScan, isActive }: InlineScannerProps) {
 
     if (isActive) {
         // slight delay to ensure DOM is ready
-        setTimeout(() => startScanner(), 100);
+        const timeoutId = setTimeout(() => startScanner(), 100);
+        return () => {
+          clearTimeout(timeoutId);
+          mountedRef.current = false;
+          // Cleanup is crucial
+          if (scannerRef.current) {
+               try {
+                  if (scannerRef.current.isScanning) {
+                      scannerRef.current.stop().then(() => {
+                          scannerRef.current?.clear();
+                      }).catch(console.error);
+                  } else {
+                      scannerRef.current.clear();
+                  }
+               } catch (e) {
+                   console.error("Cleanup error", e);
+               }
+          }
+        };
     }
 
     return () => {
         mountedRef.current = false;
-        // Cleanup is crucial
         if (scannerRef.current) {
              try {
                 if (scannerRef.current.isScanning) {
@@ -110,7 +129,7 @@ export function InlineScanner({ onScan, isActive }: InlineScannerProps) {
   };
 
   return (
-    <Card className="overflow-hidden border border-border shadow-md bg-white">
+    <Card ref={ref} className="overflow-hidden border border-border shadow-md bg-white">
       {/* Header - Matching Reference */}
       <div className="py-4 border-b border-gray-100 text-center">
         <h3 className="text-xl font-bold text-[#006d5b]">
@@ -208,4 +227,5 @@ export function InlineScanner({ onScan, isActive }: InlineScannerProps) {
       </div>
     </Card>
   );
-}
+});
+InlineScanner.displayName = "InlineScanner";
