@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMealSettings } from "@/contexts/MealSettingsContext";
@@ -416,6 +417,11 @@ export default function CafeServiceDashboard() {
     }
   };
 
+  const resetScanner = () => {
+    setScanResult({ status: "idle", message: "" });
+    inputRef.current?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       processScan(searchQuery);
@@ -586,14 +592,23 @@ export default function CafeServiceDashboard() {
           {/* Success State */}
           {scanResult.status === "granted" && scanResult.student && (
             <div className="animate-in slide-in-from-bottom-4 duration-300">
-              <ScanResultCard
-                status="success"
-                student={scanResult.student}
-                message={scanResult.message}
-                timestamp={new Date().toLocaleTimeString()}
-                mealType={settings.activeMeal}
-                onDismiss={resetScanner}
-              />
+              <Card className="border-2 border-green-500 bg-green-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <CheckCircle2 className="w-12 h-12 text-green-600" />
+                    <div>
+                      <h3 className="text-xl font-bold text-green-800">{scanResult.message}</h3>
+                      <p className="text-green-700">{scanResult.student.fullName}</p>
+                      <p className="text-sm text-green-600">
+                        {currentMeal?.toUpperCase()} - {new Date().toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Button onClick={resetScanner} className="mt-4 w-full" variant="outline">
+                    Scan Next
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -602,12 +617,23 @@ export default function CafeServiceDashboard() {
             scanResult.status === "error" ||
             scanResult.status === "warning") && (
             <div className="animate-in shake duration-300">
-              <ScanResultCard
-                status="error"
-                message={scanResult.message}
-                timestamp={new Date().toLocaleTimeString()}
-                onDismiss={resetScanner}
-              />
+              <Card className="border-2 border-red-500 bg-red-50">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-4">
+                    <XCircle className="w-12 h-12 text-red-600" />
+                    <div>
+                      <h3 className="text-xl font-bold text-red-800">{scanResult.message}</h3>
+                      {scanResult.subMessage && (
+                        <p className="text-red-700">{scanResult.subMessage}</p>
+                      )}
+                      <p className="text-sm text-red-600">{new Date().toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                  <Button onClick={resetScanner} className="mt-4 w-full" variant="outline">
+                    Try Again
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
           )}
 
