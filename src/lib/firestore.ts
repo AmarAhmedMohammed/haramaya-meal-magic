@@ -390,36 +390,43 @@ export function subscribeToStudents(
 ) {
   const studentsRef = collection(db, "students");
 
-  return onSnapshot(studentsRef, (snapshot) => {
-    const students = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        studentId: data.studentId || doc.id,
-        fullName: data.fullName || "",
-        fullNameAmharic: data.fullNameAmharic,
-        department: data.department || "",
-        year: data.year || 1,
-        photoURL: data.photoURL,
-        cafeStatus: data.cafeStatus || "none",
-        cafeteriaType: data.cafeteriaType || "christian",
-        hostelResident: data.hostelResident || false,
-        monthlyQuota: data.monthlyQuota ?? null,
-        usedQuota: data.usedQuota || 0,
-        allowedCafeterias: data.allowedCafeterias,
-        lastMeal: data.lastMeal
-          ? {
-              ...data.lastMeal,
-              timestamp: data.lastMeal.timestamp?.toDate() || new Date(),
-            }
-          : undefined,
-        notes: data.notes,
-        createdAt: data.createdAt?.toDate() || new Date(),
-        updatedAt: data.updatedAt?.toDate() || new Date(),
-      } as Student;
-    });
-    callback(students);
-  });
+  return onSnapshot(
+    studentsRef,
+    (snapshot) => {
+      const students = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          studentId: data.studentId || doc.id,
+          fullName: data.fullName || "",
+          fullNameAmharic: data.fullNameAmharic,
+          department: data.department || "",
+          year: data.year || 1,
+          photoURL: data.photoURL,
+          cafeStatus: data.cafeStatus || "none",
+          cafeteriaType: data.cafeteriaType || "christian",
+          hostelResident: data.hostelResident || false,
+          monthlyQuota: data.monthlyQuota ?? null,
+          usedQuota: data.usedQuota || 0,
+          allowedCafeterias: data.allowedCafeterias,
+          lastMeal: data.lastMeal
+            ? {
+                ...data.lastMeal,
+                timestamp: data.lastMeal.timestamp?.toDate() || new Date(),
+              }
+            : undefined,
+          notes: data.notes,
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        } as Student;
+      });
+      callback(students);
+    },
+    (error) => {
+      console.error("Error subscribing to students:", error);
+      onError?.(error);
+    }
+  );
 }
 
 export function subscribeToMealSettings(
@@ -428,22 +435,29 @@ export function subscribeToMealSettings(
 ) {
   const settingsRef = doc(db, "settings", "mealSettings");
 
-  return onSnapshot(settingsRef, (snapshot) => {
-    if (snapshot.exists()) {
-      const data = snapshot.data();
-      callback({
-        mealWindows: data.mealWindows || {
-          breakfast: { start: "06:00", end: "09:00" },
-          lunch: { start: "11:30", end: "14:00" },
-          dinner: { start: "17:30", end: "20:00" },
-        },
-        lockDurationMinutes: data.lockDurationMinutes || 180,
-        showEthiopianDate: data.showEthiopianDate ?? true,
-        defaultLanguage: data.defaultLanguage || "en",
-        scanningEnabled: data.scanningEnabled ?? true,
-      } as SystemSettings);
-    } else {
-      callback(null);
+  return onSnapshot(
+    settingsRef,
+    (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        callback({
+          mealWindows: data.mealWindows || {
+            breakfast: { start: "06:00", end: "09:00" },
+            lunch: { start: "11:30", end: "14:00" },
+            dinner: { start: "17:30", end: "20:00" },
+          },
+          lockDurationMinutes: data.lockDurationMinutes || 180,
+          showEthiopianDate: data.showEthiopianDate ?? true,
+          defaultLanguage: data.defaultLanguage || "en",
+          scanningEnabled: data.scanningEnabled ?? true,
+        } as SystemSettings);
+      } else {
+        callback(null);
+      }
+    },
+    (error) => {
+      console.error("Error subscribing to meal settings:", error);
+      onError?.(error);
     }
   );
 }

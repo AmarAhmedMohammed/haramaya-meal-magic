@@ -65,7 +65,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { admin, signOut } = useAuth();
+  const { admin, staff, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
