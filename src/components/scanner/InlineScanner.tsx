@@ -80,47 +80,32 @@ export const InlineScanner = React.forwardRef<HTMLDivElement, InlineScannerProps
     }
   }, [onScan, stopScanner]);
 
+  // Auto-start the scanner when component mounts and is active
   useEffect(() => {
     mountedRef.current = true;
 
+    // Always attempt to start when isActive is true
     if (isActive) {
-        // slight delay to ensure DOM is ready
-        const timeoutId = setTimeout(() => startScanner(), 100);
-        return () => {
-          clearTimeout(timeoutId);
-          mountedRef.current = false;
-          // Cleanup is crucial
-          if (scannerRef.current) {
-               try {
-                  if (scannerRef.current.isScanning) {
-                      scannerRef.current.stop().then(() => {
-                          scannerRef.current?.clear();
-                      }).catch(console.error);
-                  } else {
-                      scannerRef.current.clear();
-                  }
-               } catch (e) {
-                   console.error("Cleanup error", e);
-               }
-          }
-        };
+      // Start scanner immediately
+      startScanner();
     }
 
     return () => {
-        mountedRef.current = false;
-        if (scannerRef.current) {
-             try {
-                if (scannerRef.current.isScanning) {
-                    scannerRef.current.stop().then(() => {
-                        scannerRef.current?.clear();
-                    }).catch(console.error);
-                } else {
-                    scannerRef.current.clear();
-                }
-             } catch (e) {
-                 console.error("Cleanup error", e);
-             }
+      mountedRef.current = false;
+      // Cleanup on unmount
+      if (scannerRef.current) {
+        try {
+          if (scannerRef.current.isScanning) {
+            scannerRef.current.stop().then(() => {
+              scannerRef.current?.clear();
+            }).catch(console.error);
+          } else {
+            scannerRef.current.clear();
+          }
+        } catch (e) {
+          console.error("Cleanup error", e);
         }
+      }
     };
   }, [isActive, startScanner]);
 
