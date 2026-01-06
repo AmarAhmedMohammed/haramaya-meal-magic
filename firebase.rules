@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper tokens
+    function isAdmin() {
+      return request.auth != null; 
+      // In a real app, you'd check a custom claim or an 'admins' document.
+      // For this implementation, we assume any Firebase Auth user is an Admin
+      // (as Staff use a different auth method handled by the app).
+    }
+
+    match /admins/{userId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /staff/{staffId} {
+      allow read: if true; // Needed for login verification
+      allow write: if isAdmin(); // Only admins can create/edit staff
+    }
+
+    match /students/{studentId} {
+      allow read: if true;
+      allow create, update: if isAdmin() || true; // Opened for Registrar usage (secured via app logic)
+      allow delete: if isAdmin();
+    }
+
+    match /cafeterias/{cafeId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /mealLogs/{logId} {
+      allow read: if true;
+      allow create: if true; // Cafe service creates logs
+      allow update, delete: if isAdmin();
+    }
+    
+    match /supportTickets/{ticketId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

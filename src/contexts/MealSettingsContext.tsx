@@ -32,6 +32,7 @@ interface MealSettingsContextType {
   updateMealWindow: (meal: MealType, window: MealWindow) => void;
   updateLockDuration: (minutes: number) => void;
   updateScanningEnabled: (enabled: boolean) => void;
+  updateAllSettings: (newSettings: MealSettings) => Promise<void>;
   resetToDefaults: () => void;
   loading: boolean;
 }
@@ -93,62 +94,53 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateMealWindow = async (meal: MealType, window: MealWindow) => {
-    const newSettings = {
-      ...settings,
-      mealWindows: {
-        ...settings.mealWindows,
-        [meal]: window,
-      },
-    };
+    // Functional update to avoid race conditions
+    setSettings((prev) => {
+      const newSettings = {
+        ...prev,
+        mealWindows: {
+          ...prev.mealWindows,
+          [meal]: window,
+        },
+      };
 
-    // Optimistic update
-    setSettings(newSettings);
+      // Save to Firestore (async side effect)
+      updateFirestoreSettings(newSettings).catch((err) => {
+        console.error("Error updating meal window:", err);
+        // We might want to revert here, but functional updates make it tricky
+        // For now, let's rely on the real-time subscription to correct the UI
+      });
 
-    // Save to Firestore
-    try {
-      await updateFirestoreSettings(newSettings);
-    } catch (error) {
-      console.error("Error updating meal window:", error);
-      // Revert on error
-      setSettings(settings);
-    }
+      return newSettings;
+    });
   };
 
   const updateLockDuration = async (minutes: number) => {
-    const newSettings = {
-      ...settings,
-      lockDurationMinutes: minutes,
-    };
-
-    // Optimistic update
-    setSettings(newSettings);
-
-    // Save to Firestore
-    try {
-      await updateFirestoreSettings(newSettings);
-    } catch (error) {
-      console.error("Error updating lock duration:", error);
-      // Revert on error
-      setSettings(settings);
-    }
+    setSettings((prev) => {
+      const newSettings = { ...prev, lockDurationMinutes: minutes };
+      updateFirestoreSettings(newSettings).catch((err) =>
+        console.error("Error updating lock duration:", err)
+      );
+      return newSettings;
+    });
   };
 
   const updateScanningEnabled = async (enabled: boolean) => {
-    const newSettings = {
-      ...settings,
-      scanningEnabled: enabled,
-    };
+    setSettings((prev) => {
+      const newSettings = { ...prev, scanningEnabled: enabled };
+      updateFirestoreSettings(newSettings).catch((err) =>
+        console.error("Error updating scanning enabled:", err)
+      );
+      return newSettings;
+    });
+  };
 
-    // Optimistic update
+  const updateAllSettings = async (newSettings: MealSettings) => {
     setSettings(newSettings);
-
-    // Save to Firestore
     try {
       await updateFirestoreSettings(newSettings);
     } catch (error) {
-      console.error("Error updating scanning enabled:", error);
-      // Revert on error
-      setSettings(settings);
+      console.error("Error updating all settings:", error);
     }
   };
 
@@ -170,6 +162,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
         updateMealWindow,
         updateLockDuration,
         updateScanningEnabled,
+        updateAllSettings,
         resetToDefaults,
         loading,
       }}

@@ -24,7 +24,8 @@ export async function createStudent(
   studentData: Omit<Student, "id" | "createdAt" | "updatedAt">
 ) {
   try {
-    const studentRef = doc(db, "students", studentData.studentId);
+    const docId = studentData.studentId.replace(/\//g, "-");
+    const studentRef = doc(db, "students", docId);
     const studentDoc = {
       ...studentData,
       createdAt: Timestamp.now(),
@@ -43,7 +44,8 @@ export async function updateStudent(
   updates: Partial<Student>
 ) {
   try {
-    const studentRef = doc(db, "students", studentId);
+    const docId = studentId.replace(/\//g, "-");
+    const studentRef = doc(db, "students", docId);
     await updateDoc(studentRef, {
       ...updates,
       updatedAt: Timestamp.now(),
@@ -57,7 +59,8 @@ export async function updateStudent(
 
 export async function deleteStudent(studentId: string) {
   try {
-    const studentRef = doc(db, "students", studentId);
+    const docId = studentId.replace(/\//g, "-");
+    const studentRef = doc(db, "students", docId);
     await deleteDoc(studentRef);
     return { success: true };
   } catch (error) {
@@ -68,7 +71,8 @@ export async function deleteStudent(studentId: string) {
 
 export async function getStudent(studentId: string): Promise<Student | null> {
   try {
-    const studentRef = doc(db, "students", studentId);
+    const docId = studentId.replace(/\//g, "-");
+    const studentRef = doc(db, "students", docId);
     const studentSnap = await getDoc(studentRef);
 
     if (studentSnap.exists()) {
@@ -76,13 +80,13 @@ export async function getStudent(studentId: string): Promise<Student | null> {
       return {
         id: studentSnap.id,
         studentId: data.studentId || studentSnap.id,
-        fullName: data.fullName || '',
+        fullName: data.fullName || "",
         fullNameAmharic: data.fullNameAmharic,
-        department: data.department || '',
+        department: data.department || "",
         year: data.year || 1,
         photoURL: data.photoURL,
-        cafeStatus: data.cafeStatus || 'none',
-        cafeteriaType: data.cafeteriaType || 'christian',
+        cafeStatus: data.cafeStatus || "none",
+        cafeteriaType: data.cafeteriaType || "christian",
         hostelResident: data.hostelResident || false,
         monthlyQuota: data.monthlyQuota ?? null,
         usedQuota: data.usedQuota || 0,
@@ -115,13 +119,13 @@ export async function getAllStudents(): Promise<Student[]> {
       return {
         id: doc.id,
         studentId: data.studentId || doc.id,
-        fullName: data.fullName || '',
+        fullName: data.fullName || "",
         fullNameAmharic: data.fullNameAmharic,
-        department: data.department || '',
+        department: data.department || "",
         year: data.year || 1,
         photoURL: data.photoURL,
-        cafeStatus: data.cafeStatus || 'none',
-        cafeteriaType: data.cafeteriaType || 'christian',
+        cafeStatus: data.cafeStatus || "none",
+        cafeteriaType: data.cafeteriaType || "christian",
         hostelResident: data.hostelResident || false,
         monthlyQuota: data.monthlyQuota ?? null,
         usedQuota: data.usedQuota || 0,
@@ -153,13 +157,13 @@ export async function searchStudents(searchTerm: string): Promise<Student[]> {
       return {
         id: doc.id,
         studentId: data.studentId || doc.id,
-        fullName: data.fullName || '',
+        fullName: data.fullName || "",
         fullNameAmharic: data.fullNameAmharic,
-        department: data.department || '',
+        department: data.department || "",
         year: data.year || 1,
         photoURL: data.photoURL,
-        cafeStatus: data.cafeStatus || 'none',
-        cafeteriaType: data.cafeteriaType || 'christian',
+        cafeStatus: data.cafeStatus || "none",
+        cafeteriaType: data.cafeteriaType || "christian",
         hostelResident: data.hostelResident || false,
         monthlyQuota: data.monthlyQuota ?? null,
         usedQuota: data.usedQuota || 0,
@@ -188,9 +192,7 @@ export async function searchStudents(searchTerm: string): Promise<Student[]> {
 // CAFETERIAS
 // =============================================
 
-export async function createCafeteria(
-  cafeteriaData: Omit<Cafeteria, "id">
-) {
+export async function createCafeteria(cafeteriaData: Omit<Cafeteria, "id">) {
   try {
     const cafeteriaRef = doc(db, "cafeterias", cafeteriaData.cafeteriaId);
     const cafeteriaDoc = {
@@ -230,14 +232,14 @@ export async function getAllCafeterias(): Promise<Cafeteria[]> {
       return {
         id: doc.id,
         cafeteriaId: data.cafeteriaId || doc.id,
-        cafeteriaType: data.cafeteriaType || 'christian',
-        name: data.name || '',
+        cafeteriaType: data.cafeteriaType || "christian",
+        name: data.name || "",
         nameAmharic: data.nameAmharic,
-        location: data.location || '',
+        location: data.location || "",
         openHours: data.openHours || {
-          breakfast: { start: '06:00', end: '09:00' },
-          lunch: { start: '11:30', end: '14:00' },
-          dinner: { start: '17:30', end: '20:00' },
+          breakfast: { start: "06:00", end: "09:00" },
+          lunch: { start: "11:30", end: "14:00" },
+          dinner: { start: "17:30", end: "20:00" },
         },
         isActive: data.isActive ?? true,
       } as Cafeteria;
@@ -261,13 +263,14 @@ export async function getMealSettings(): Promise<SystemSettings | null> {
       const data = settingsSnap.data();
       return {
         mealWindows: data.mealWindows || {
-          breakfast: { start: '06:00', end: '09:00' },
-          lunch: { start: '11:30', end: '14:00' },
-          dinner: { start: '17:30', end: '20:00' },
+          breakfast: { start: "06:00", end: "09:00" },
+          lunch: { start: "11:30", end: "14:00" },
+          dinner: { start: "17:30", end: "20:00" },
         },
         lockDurationMinutes: data.lockDurationMinutes || 180,
         showEthiopianDate: data.showEthiopianDate ?? true,
-        defaultLanguage: data.defaultLanguage || 'en',
+        defaultLanguage: data.defaultLanguage || "en",
+        scanningEnabled: data.scanningEnabled ?? true,
       } as SystemSettings;
     }
     return null;
@@ -351,13 +354,13 @@ export async function getMealLogs(filters?: {
       const data = doc.data();
       return {
         id: doc.id,
-        studentId: data.studentId || '',
-        studentName: data.studentName || '',
-        mealType: data.mealType || 'lunch',
-        cafeteriaId: data.cafeteriaId || '',
-        cafeteriaName: data.cafeteriaName || '',
+        studentId: data.studentId || "",
+        studentName: data.studentName || "",
+        mealType: data.mealType || "lunch",
+        cafeteriaId: data.cafeteriaId || "",
+        cafeteriaName: data.cafeteriaName || "",
         timestamp: data.timestamp?.toDate() || new Date(),
-        result: data.result || 'denied',
+        result: data.result || "denied",
         reason: data.reason,
         cashierId: data.cashierId,
         isOverride: data.isOverride,
@@ -390,13 +393,13 @@ export function subscribeToStudents(callback: (students: Student[]) => void) {
       return {
         id: doc.id,
         studentId: data.studentId || doc.id,
-        fullName: data.fullName || '',
+        fullName: data.fullName || "",
         fullNameAmharic: data.fullNameAmharic,
-        department: data.department || '',
+        department: data.department || "",
         year: data.year || 1,
         photoURL: data.photoURL,
-        cafeStatus: data.cafeStatus || 'none',
-        cafeteriaType: data.cafeteriaType || 'christian',
+        cafeStatus: data.cafeStatus || "none",
+        cafeteriaType: data.cafeteriaType || "christian",
         hostelResident: data.hostelResident || false,
         monthlyQuota: data.monthlyQuota ?? null,
         usedQuota: data.usedQuota || 0,
@@ -426,13 +429,14 @@ export function subscribeToMealSettings(
       const data = snapshot.data();
       callback({
         mealWindows: data.mealWindows || {
-          breakfast: { start: '06:00', end: '09:00' },
-          lunch: { start: '11:30', end: '14:00' },
-          dinner: { start: '17:30', end: '20:00' },
+          breakfast: { start: "06:00", end: "09:00" },
+          lunch: { start: "11:30", end: "14:00" },
+          dinner: { start: "17:30", end: "20:00" },
         },
         lockDurationMinutes: data.lockDurationMinutes || 180,
         showEthiopianDate: data.showEthiopianDate ?? true,
-        defaultLanguage: data.defaultLanguage || 'en',
+        defaultLanguage: data.defaultLanguage || "en",
+        scanningEnabled: data.scanningEnabled ?? true,
       } as SystemSettings);
     } else {
       callback(null);
@@ -451,14 +455,14 @@ export function subscribeToCafeterias(
       return {
         id: doc.id,
         cafeteriaId: data.cafeteriaId || doc.id,
-        cafeteriaType: data.cafeteriaType || 'christian',
-        name: data.name || '',
+        cafeteriaType: data.cafeteriaType || "christian",
+        name: data.name || "",
         nameAmharic: data.nameAmharic,
-        location: data.location || '',
+        location: data.location || "",
         openHours: data.openHours || {
-          breakfast: { start: '06:00', end: '09:00' },
-          lunch: { start: '11:30', end: '14:00' },
-          dinner: { start: '17:30', end: '20:00' },
+          breakfast: { start: "06:00", end: "09:00" },
+          lunch: { start: "11:30", end: "14:00" },
+          dinner: { start: "17:30", end: "20:00" },
         },
         isActive: data.isActive ?? true,
       } as Cafeteria;
@@ -487,13 +491,13 @@ export function subscribeToMealLogs(
       const data = doc.data();
       return {
         id: doc.id,
-        studentId: data.studentId || '',
-        studentName: data.studentName || '',
-        mealType: data.mealType || 'lunch',
-        cafeteriaId: data.cafeteriaId || '',
-        cafeteriaName: data.cafeteriaName || '',
+        studentId: data.studentId || "",
+        studentName: data.studentName || "",
+        mealType: data.mealType || "lunch",
+        cafeteriaId: data.cafeteriaId || "",
+        cafeteriaName: data.cafeteriaName || "",
         timestamp: data.timestamp?.toDate() || new Date(),
-        result: data.result || 'denied',
+        result: data.result || "denied",
         reason: data.reason,
         cashierId: data.cashierId,
         isOverride: data.isOverride,
@@ -517,7 +521,8 @@ export async function updateStudentLastMeal(
   cafeteriaId: string
 ) {
   try {
-    const studentRef = doc(db, "students", studentId);
+    const docId = studentId.replace(/\//g, "-");
+    const studentRef = doc(db, "students", docId);
     await updateDoc(studentRef, {
       lastMeal: {
         mealType,

@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,7 +32,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { subscribeToStudents, updateStudent } from "@/lib/firestore";
 import { getCafeteriaTypeLabel } from "@/lib/mealLogic";
 import { Student } from "@/types";
-import { CreditCard, Search, Upload, ArrowLeft, User, Check, X } from "lucide-react";
+import {
+  CreditCard,
+  Search,
+  Upload,
+  ArrowLeft,
+  User,
+  Check,
+  X,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -41,7 +55,8 @@ export default function IDCards() {
   const [photoURL, setPhotoURL] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isAdmin = admin?.role === 'super_admin' || admin?.role === 'registrar_admin';
+  const isAdmin =
+    admin?.role === "super_admin" || admin?.role === "registrar_admin";
 
   useEffect(() => {
     const unsubscribe = subscribeToStudents((updatedStudents) => {
@@ -98,7 +113,9 @@ export default function IDCards() {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            Access Denied
+          </h1>
           <p className="text-muted-foreground mb-6">
             You don't have permission to manage ID cards.
           </p>
@@ -119,7 +136,7 @@ export default function IDCards() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link to="/students">
+            <Link to="/admin/dashboard">
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -154,14 +171,16 @@ export default function IDCards() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card variant="default">
             <CardContent className="p-4 text-center">
-              <p className="text-2xl font-bold text-foreground">{students.length}</p>
+              <p className="text-2xl font-bold text-foreground">
+                {students.length}
+              </p>
               <p className="text-sm text-muted-foreground">Total Students</p>
             </CardContent>
           </Card>
           <Card variant="default">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-success">
-                {students.filter(s => s.photoURL).length}
+                {students.filter((s) => s.photoURL).length}
               </p>
               <p className="text-sm text-muted-foreground">With Photo</p>
             </CardContent>
@@ -169,7 +188,7 @@ export default function IDCards() {
           <Card variant="default">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-warning">
-                {students.filter(s => !s.photoURL).length}
+                {students.filter((s) => !s.photoURL).length}
               </p>
               <p className="text-sm text-muted-foreground">No Photo</p>
             </CardContent>
@@ -177,7 +196,12 @@ export default function IDCards() {
           <Card variant="default">
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-accent">
-                {Math.round((students.filter(s => s.photoURL).length / students.length) * 100) || 0}%
+                {Math.round(
+                  (students.filter((s) => s.photoURL).length /
+                    students.length) *
+                    100
+                ) || 0}
+                %
               </p>
               <p className="text-sm text-muted-foreground">Completion</p>
             </CardContent>
@@ -211,13 +235,19 @@ export default function IDCards() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         Loading students...
                       </TableCell>
                     </TableRow>
                   ) : filteredStudents.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         No students found
                       </TableCell>
                     </TableRow>
@@ -244,8 +274,12 @@ export default function IDCards() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium text-foreground">{student.fullName}</p>
-                          <p className="text-xs text-muted-foreground">{student.department}</p>
+                          <p className="font-medium text-foreground">
+                            {student.fullName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {student.department}
+                          </p>
                         </TableCell>
                         <TableCell>
                           <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
@@ -299,7 +333,7 @@ export default function IDCards() {
                 Enter the URL of the student's ID card photo
               </DialogDescription>
             </DialogHeader>
-            
+
             {selectedStudent && (
               <div className="space-y-4">
                 <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
@@ -316,7 +350,9 @@ export default function IDCards() {
                   </div>
                   <div>
                     <p className="font-medium">{selectedStudent.fullName}</p>
-                    <p className="text-sm text-muted-foreground">{selectedStudent.studentId}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedStudent.studentId}
+                    </p>
                   </div>
                 </div>
 
@@ -342,7 +378,7 @@ export default function IDCards() {
                         alt="Preview"
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
+                          (e.target as HTMLImageElement).style.display = "none";
                         }}
                       />
                     </div>
@@ -352,7 +388,10 @@ export default function IDCards() {
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsUploadDialogOpen(false)}
+              >
                 Cancel
               </Button>
               <Button onClick={handleUploadPhoto} disabled={isSubmitting}>

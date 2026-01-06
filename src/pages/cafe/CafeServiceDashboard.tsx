@@ -7,15 +7,15 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMealSettings } from "@/contexts/MealSettingsContext";
-import { 
+import {
   getStudent,
   createMealLog,
   updateStudent,
   subscribeToStudents,
 } from "@/lib/firestore";
 import { Student, MealType, CafeteriaType } from "@/types";
-import { 
-  ScanLine, 
+import {
+  ScanLine,
   Search,
   CheckCircle2,
   XCircle,
@@ -33,7 +33,7 @@ import { Navigate } from "react-router-dom";
 import huLogo from "@/assets/hu-logo.png";
 
 // Status message types
-type ScanStatus = 'idle' | 'granted' | 'denied' | 'warning' | 'error';
+type ScanStatus = "idle" | "granted" | "denied" | "warning" | "error";
 
 interface ScanResult {
   status: ScanStatus;
@@ -43,27 +43,30 @@ interface ScanResult {
 }
 
 export default function CafeServiceDashboard() {
-  const { staff, signOut, authType } = useAuth();
+  const { staff, signOut, authType, loading: authLoading } = useAuth();
   const { settings } = useMealSettings();
   const { toast } = useToast();
-  
+
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [scanResult, setScanResult] = useState<ScanResult>({ status: 'idle', message: '' });
+  const [scanResult, setScanResult] = useState<ScanResult>({
+    status: "idle",
+    message: "",
+  });
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentMeal, setCurrentMeal] = useState<MealType | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  
+
   // Scanner refs
   const scannerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autoResetTimerRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Audio refs
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
-  const staffCafeteria = staff?.cafeteriaType || 'christian';
+  const staffCafeteria = staff?.cafeteriaType || "christian";
 
   // Subscribe to students for real-time updates
   useEffect(() => {
@@ -78,16 +81,42 @@ export default function CafeServiceDashboard() {
   useEffect(() => {
     const checkMealTime = () => {
       const now = new Date();
-      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const currentTimeStr = `${now
+        .getHours()
+        .toString()
+        .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
       const { mealWindows } = settings;
-      
-      if (currentTime >= mealWindows.breakfast.start && currentTime <= mealWindows.breakfast.end) {
-        setCurrentMeal('breakfast');
-      } else if (currentTime >= mealWindows.lunch.start && currentTime <= mealWindows.lunch.end) {
-        setCurrentMeal('lunch');
-      } else if (currentTime >= mealWindows.dinner.start && currentTime <= mealWindows.dinner.end) {
-        setCurrentMeal('dinner');
+
+      const toMinutes = (timeStr: string) => {
+        const [h, m] = timeStr.split(":").map(Number);
+        return h * 60 + m;
+      };
+
+      const isTimeInRange = (startStr: string, endStr: string) => {
+        const start = toMinutes(startStr);
+        const end = toMinutes(endStr);
+        if (start <= end) {
+          return currentMinutes >= start && currentMinutes <= end;
+        } else {
+          // Crosses midnight (e.g., 22:00 to 02:00)
+          return currentMinutes >= start || currentMinutes <= end;
+        }
+      };
+
+      if (
+        isTimeInRange(mealWindows.breakfast.start, mealWindows.breakfast.end)
+      ) {
+        setCurrentMeal("breakfast");
+      } else if (
+        isTimeInRange(mealWindows.lunch.start, mealWindows.lunch.end)
+      ) {
+        setCurrentMeal("lunch");
+      } else if (
+        isTimeInRange(mealWindows.dinner.start, mealWindows.dinner.end)
+      ) {
+        setCurrentMeal("dinner");
       } else {
         setCurrentMeal(null);
       }
@@ -104,38 +133,50 @@ export default function CafeServiceDashboard() {
     inputRef.current?.focus();
   }, [scanResult]);
 
-  // Redirect if not cafe service
-  if (authType !== 'staff' || staff?.role !== 'cafe_service') {
+  // Redirect if not cafe service (wait for auth loading)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (authType !== "staff" || staff?.role !== "cafe_service") {
     return <Navigate to="/" replace />;
   }
 
-  const playSound = (type: 'success' | 'error') => {
+  const playSound = (type: "success" | "error") => {
     if (!soundEnabled) return;
-    
+
     // Use Web Audio API for simple tones
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
-      
+
       oscillator.connect(gainNode);
       gainNode.connect(audioContext.destination);
-      
-      if (type === 'success') {
+
+      if (type === "success") {
         oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
+        oscillator.type = "sine";
         gainNode.gain.value = 0.3;
       } else {
         oscillator.frequency.value = 300;
-        oscillator.type = 'square';
+        oscillator.type = "square";
         gainNode.gain.value = 0.2;
       }
-      
+
       oscillator.start();
-      setTimeout(() => {
-        oscillator.stop();
-        audioContext.close();
-      }, type === 'success' ? 200 : 400);
+      setTimeout(
+        () => {
+          oscillator.stop();
+          audioContext.close();
+        },
+        type === "success" ? 200 : 400
+      );
     } catch (e) {
       // Audio not supported
     }
@@ -143,16 +184,20 @@ export default function CafeServiceDashboard() {
 
   const getCafeteriaLabel = (type: CafeteriaType): string => {
     switch (type) {
-      case 'muslim': return 'Muslim Cafeteria';
-      case 'christian': return 'Christian Cafeteria';
-      case 'fresh': return 'Freshman Cafeteria';
-      default: return 'Unknown';
+      case "muslim":
+        return "Muslim Cafeteria";
+      case "christian":
+        return "Christian Cafeteria";
+      case "fresh":
+        return "Freshman Cafeteria";
+      default:
+        return "Unknown";
     }
   };
 
   const processScan = async (studentId: string) => {
     if (isProcessing || !studentId.trim()) return;
-    
+
     setIsProcessing(true);
     setSearchQuery("");
 
@@ -163,31 +208,33 @@ export default function CafeServiceDashboard() {
 
     try {
       // Find student in real-time subscribed data first
-      let student = students.find(s => s.studentId.toLowerCase() === studentId.toLowerCase());
-      
+      let student = students.find(
+        (s) => s.studentId.toLowerCase() === studentId.toLowerCase()
+      );
+
       // If not found, try to fetch from Firestore
       if (!student) {
-        student = await getStudent(studentId) || undefined;
+        student = (await getStudent(studentId)) || undefined;
       }
 
       if (!student) {
-        playSound('error');
+        playSound("error");
         setScanResult({
-          status: 'error',
-          message: 'Student Not Found',
+          status: "error",
+          message: "Student Not Found",
           subMessage: `ID: ${studentId} is not registered in the system`,
         });
-        logMealAttempt(studentId, 'denied', 'Student not found');
+        logMealAttempt(studentId, "denied", "Student not found");
         return;
       }
 
       // Check if scanning is enabled
       if (!settings.scanningEnabled) {
-        playSound('error');
+        playSound("error");
         setScanResult({
-          status: 'error',
-          message: 'Scanning Disabled',
-          subMessage: 'Meal service is currently paused by admin',
+          status: "error",
+          message: "Scanning Disabled",
+          subMessage: "Meal service is currently paused by admin",
           student,
         });
         return;
@@ -195,77 +242,82 @@ export default function CafeServiceDashboard() {
 
       // Check if current meal time
       if (!currentMeal) {
-        playSound('error');
+        playSound("error");
         setScanResult({
-          status: 'warning',
-          message: 'Outside Meal Hours',
-          subMessage: 'No meal service is currently active',
+          status: "warning",
+          message: "Outside Meal Hours",
+          subMessage: "No meal service is currently active",
           student,
         });
         return;
       }
 
       // Check student status
-      if (student.status === 'graduated') {
-        playSound('error');
+      if (student.status === "graduated") {
+        playSound("error");
         setScanResult({
-          status: 'denied',
-          message: 'Already Graduated',
-          subMessage: 'This student has already graduated from the university',
+          status: "denied",
+          message: "Already Graduated",
+          subMessage: "This student has already graduated from the university",
           student,
         });
-        logMealAttempt(studentId, 'denied', 'Student graduated', student);
+        logMealAttempt(studentId, "denied", "Student graduated", student);
         return;
       }
 
-      if (student.status === 'persecuted') {
-        playSound('error');
+      if (student.status === "persecuted") {
+        playSound("error");
         setScanResult({
-          status: 'denied',
-          message: 'Persecuted from University',
-          subMessage: 'This student has been persecuted from the university',
+          status: "denied",
+          message: "Persecuted from University",
+          subMessage: "This student has been persecuted from the university",
           student,
         });
-        logMealAttempt(studentId, 'denied', 'Student persecuted', student);
+        logMealAttempt(studentId, "denied", "Student persecuted", student);
         return;
       }
 
-      if (student.status === 'suspended') {
-        playSound('error');
+      if (student.status === "suspended") {
+        playSound("error");
         setScanResult({
-          status: 'denied',
-          message: 'Student Suspended',
-          subMessage: 'This student is currently suspended',
+          status: "denied",
+          message: "Student Suspended",
+          subMessage: "This student is currently suspended",
           student,
         });
-        logMealAttempt(studentId, 'denied', 'Student suspended', student);
+        logMealAttempt(studentId, "denied", "Student suspended", student);
         return;
       }
 
       // Check cafe status
-      if (student.cafeStatus === 'none') {
-        playSound('error');
+      if (student.cafeStatus === "none") {
+        playSound("error");
         setScanResult({
-          status: 'denied',
-          message: 'Non-Cafe Student',
-          subMessage: 'This student is not registered for cafeteria service',
+          status: "denied",
+          message: "Non-Cafe Student",
+          subMessage: "This student is not registered for cafeteria service",
           student,
         });
-        logMealAttempt(studentId, 'denied', 'Non-cafe student', student);
+        logMealAttempt(studentId, "denied", "Non-cafe student", student);
         return;
       }
 
       // Check cafeteria type
       if (student.cafeteriaType !== staffCafeteria) {
         const studentCafe = getCafeteriaLabel(student.cafeteriaType);
-        playSound('error');
+        playSound("error");
         setScanResult({
-          status: 'warning',
-          message: 'Wrong Cafeteria',
+          status: "warning",
+          message: "Wrong Cafeteria",
           subMessage: `This student belongs to ${studentCafe}`,
           student,
         });
-        logMealAttempt(studentId, 'denied', `Wrong cafeteria - belongs to ${studentCafe}`, student);
+        logMealAttempt(
+          studentId,
+          "denied",
+          `Wrong cafeteria - belongs to ${studentCafe}`,
+          student
+        );
         return;
       }
 
@@ -273,26 +325,31 @@ export default function CafeServiceDashboard() {
       if (student.lastMeal) {
         const lastMealDate = new Date(student.lastMeal.timestamp);
         const today = new Date();
-        
+
         if (
           lastMealDate.toDateString() === today.toDateString() &&
           student.lastMeal.mealType === currentMeal
         ) {
-          playSound('error');
+          playSound("error");
           setScanResult({
-            status: 'denied',
-            message: 'Already Scanned',
+            status: "denied",
+            message: "Already Scanned",
             subMessage: `This student already received ${currentMeal} today`,
             student,
           });
-          logMealAttempt(studentId, 'denied', 'Already scanned for this meal', student);
+          logMealAttempt(
+            studentId,
+            "denied",
+            "Already scanned for this meal",
+            student
+          );
           return;
         }
       }
 
       // All checks passed - grant access
-      playSound('success');
-      
+      playSound("success");
+
       // Update student's last meal
       await updateStudent(studentId, {
         lastMeal: {
@@ -304,45 +361,46 @@ export default function CafeServiceDashboard() {
       });
 
       // Log the meal
-      logMealAttempt(studentId, 'granted', undefined, student);
+      logMealAttempt(studentId, "granted", undefined, student);
 
       setScanResult({
-        status: 'granted',
-        message: 'Access Granted',
-        subMessage: `${currentMeal.charAt(0).toUpperCase() + currentMeal.slice(1)} meal approved`,
+        status: "granted",
+        message: "Access Granted",
+        subMessage: `${
+          currentMeal.charAt(0).toUpperCase() + currentMeal.slice(1)
+        } meal approved`,
         student,
       });
-
     } catch (error) {
-      console.error('Scan error:', error);
-      playSound('error');
+      console.error("Scan error:", error);
+      playSound("error");
       setScanResult({
-        status: 'error',
-        message: 'System Error',
-        subMessage: 'Please try again or contact support',
+        status: "error",
+        message: "System Error",
+        subMessage: "Please try again or contact support",
       });
     } finally {
       setIsProcessing(false);
-      
+
       // Auto-reset after 3 seconds for next scan
       autoResetTimerRef.current = setTimeout(() => {
-        setScanResult({ status: 'idle', message: '' });
+        setScanResult({ status: "idle", message: "" });
         inputRef.current?.focus();
       }, 3000);
     }
   };
 
   const logMealAttempt = async (
-    studentId: string, 
-    result: 'granted' | 'denied', 
+    studentId: string,
+    result: "granted" | "denied",
     reason?: string,
     student?: Student
   ) => {
     try {
       await createMealLog({
         studentId,
-        studentName: student?.fullName || 'Unknown',
-        mealType: currentMeal || 'lunch',
+        studentName: student?.fullName || "Unknown",
+        mealType: currentMeal || "lunch",
         cafeteriaId: staffCafeteria,
         cafeteriaName: getCafeteriaLabel(staffCafeteria),
         timestamp: new Date(),
@@ -352,32 +410,41 @@ export default function CafeServiceDashboard() {
         synced: true,
       });
     } catch (error) {
-      console.error('Failed to log meal:', error);
+      console.error("Failed to log meal:", error);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       processScan(searchQuery);
     }
   };
 
   const getMealIcon = () => {
     switch (currentMeal) {
-      case 'breakfast': return <Coffee className="w-6 h-6" />;
-      case 'lunch': return <Sun className="w-6 h-6" />;
-      case 'dinner': return <Moon className="w-6 h-6" />;
-      default: return <Clock className="w-6 h-6" />;
+      case "breakfast":
+        return <Coffee className="w-6 h-6" />;
+      case "lunch":
+        return <Sun className="w-6 h-6" />;
+      case "dinner":
+        return <Moon className="w-6 h-6" />;
+      default:
+        return <Clock className="w-6 h-6" />;
     }
   };
 
   const getStatusColor = () => {
     switch (scanResult.status) {
-      case 'granted': return 'bg-success';
-      case 'denied': return 'bg-destructive';
-      case 'warning': return 'bg-warning';
-      case 'error': return 'bg-destructive';
-      default: return 'bg-muted';
+      case "granted":
+        return "bg-success";
+      case "denied":
+        return "bg-destructive";
+      case "warning":
+        return "bg-warning";
+      case "error":
+        return "bg-destructive";
+      default:
+        return "bg-muted";
     }
   };
 
@@ -387,24 +454,32 @@ export default function CafeServiceDashboard() {
       <header className="sticky top-0 z-50 bg-sidebar border-b border-border">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={huLogo} alt="HU Logo" className="w-10 h-10 object-contain" />
+            <img
+              src={huLogo}
+              alt="HU Logo"
+              className="w-10 h-10 object-contain"
+            />
             <div>
               <h1 className="text-lg font-bold text-sidebar-foreground">
                 {getCafeteriaLabel(staffCafeteria)}
               </h1>
-              <p className="text-xs text-sidebar-foreground/70">{staff?.fullName}</p>
+              <p className="text-xs text-sidebar-foreground/70">
+                {staff?.fullName}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {/* Current Meal Badge */}
-            <Badge 
-              variant={currentMeal ? 'granted' : 'denied'}
+            <Badge
+              variant={currentMeal ? "granted" : "denied"}
               className="gap-2 py-1.5 px-3"
             >
               {getMealIcon()}
-              {currentMeal ? currentMeal.charAt(0).toUpperCase() + currentMeal.slice(1) : 'Closed'}
+              {currentMeal
+                ? currentMeal.charAt(0).toUpperCase() + currentMeal.slice(1)
+                : "Closed"}
             </Badge>
-            
+
             {/* Sound Toggle */}
             <Button
               variant="ghost"
@@ -412,9 +487,13 @@ export default function CafeServiceDashboard() {
               onClick={() => setSoundEnabled(!soundEnabled)}
               className="text-sidebar-foreground/70"
             >
-              {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+              {soundEnabled ? (
+                <Volume2 className="w-5 h-5" />
+              ) : (
+                <VolumeX className="w-5 h-5" />
+              )}
             </Button>
-            
+
             {/* Logout */}
             <Button
               variant="ghost"
@@ -445,7 +524,7 @@ export default function CafeServiceDashboard() {
                 </p>
               </div>
             </div>
-            
+
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
@@ -471,19 +550,22 @@ export default function CafeServiceDashboard() {
 
           {/* Scan Result Display */}
           <AnimatePresence mode="wait">
-            {scanResult.status !== 'idle' && (
+            {scanResult.status !== "idle" && (
               <motion.div
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -20, scale: 0.95 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card 
+                <Card
                   className={`overflow-hidden border-2 ${
-                    scanResult.status === 'granted' ? 'border-success bg-success/5' :
-                    scanResult.status === 'denied' ? 'border-destructive bg-destructive/5' :
-                    scanResult.status === 'warning' ? 'border-warning bg-warning/5' :
-                    'border-destructive bg-destructive/5'
+                    scanResult.status === "granted"
+                      ? "border-success bg-success/5"
+                      : scanResult.status === "denied"
+                      ? "border-destructive bg-destructive/5"
+                      : scanResult.status === "warning"
+                      ? "border-warning bg-warning/5"
+                      : "border-destructive bg-destructive/5"
                   }`}
                 >
                   <CardContent className="p-6">
@@ -495,22 +577,26 @@ export default function CafeServiceDashboard() {
                         transition={{ type: "spring", damping: 10 }}
                         className={`p-4 rounded-full ${getStatusColor()}`}
                       >
-                        {scanResult.status === 'granted' ? (
+                        {scanResult.status === "granted" ? (
                           <CheckCircle2 className="w-10 h-10 text-white" />
-                        ) : scanResult.status === 'warning' ? (
+                        ) : scanResult.status === "warning" ? (
                           <AlertTriangle className="w-10 h-10 text-white" />
                         ) : (
                           <XCircle className="w-10 h-10 text-white" />
                         )}
                       </motion.div>
-                      
+
                       {/* Message */}
                       <div className="flex-1">
-                        <h3 className={`text-2xl font-bold ${
-                          scanResult.status === 'granted' ? 'text-success' :
-                          scanResult.status === 'warning' ? 'text-warning' :
-                          'text-destructive'
-                        }`}>
+                        <h3
+                          className={`text-2xl font-bold ${
+                            scanResult.status === "granted"
+                              ? "text-success"
+                              : scanResult.status === "warning"
+                              ? "text-warning"
+                              : "text-destructive"
+                          }`}
+                        >
                           {scanResult.message}
                         </h3>
                         {scanResult.subMessage && (
@@ -518,12 +604,15 @@ export default function CafeServiceDashboard() {
                             {scanResult.subMessage}
                           </p>
                         )}
-                        
+
                         {scanResult.student && (
                           <div className="mt-4 p-3 bg-muted rounded-lg">
-                            <p className="font-medium">{scanResult.student.fullName}</p>
+                            <p className="font-medium">
+                              {scanResult.student.fullName}
+                            </p>
                             <p className="text-sm text-muted-foreground">
-                              {scanResult.student.studentId} • {scanResult.student.department}
+                              {scanResult.student.studentId} •{" "}
+                              {scanResult.student.department}
                             </p>
                           </div>
                         )}
@@ -536,7 +625,7 @@ export default function CafeServiceDashboard() {
           </AnimatePresence>
 
           {/* Idle State */}
-          {scanResult.status === 'idle' && !isProcessing && (
+          {scanResult.status === "idle" && !isProcessing && (
             <Card variant="elevated" className="p-8 text-center">
               <div className="flex flex-col items-center">
                 <div className="p-6 bg-accent/10 rounded-full mb-4">
@@ -567,8 +656,10 @@ export default function CafeServiceDashboard() {
         <div className="lg:w-80">
           <Card variant="elevated" className="sticky top-24">
             <CardContent className="p-4">
-              <h3 className="text-sm font-medium text-muted-foreground mb-3">Student Photo</h3>
-              
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">
+                Student Photo
+              </h3>
+
               <div className="aspect-[3/4] bg-muted rounded-lg overflow-hidden">
                 {scanResult.student?.photoURL ? (
                   <motion.img
@@ -599,9 +690,13 @@ export default function CafeServiceDashboard() {
                     </Badge>
                   </div>
                   <div className="flex justify-center">
-                    <Badge variant={
-                      scanResult.student.cafeteriaType === staffCafeteria ? 'granted' : 'denied'
-                    }>
+                    <Badge
+                      variant={
+                        scanResult.student.cafeteriaType === staffCafeteria
+                          ? "granted"
+                          : "denied"
+                      }
+                    >
                       {getCafeteriaLabel(scanResult.student.cafeteriaType)}
                     </Badge>
                   </div>
@@ -615,16 +710,38 @@ export default function CafeServiceDashboard() {
       {/* Footer Status Bar */}
       <footer className="sticky bottom-0 bg-sidebar border-t border-border py-2 px-4">
         <div className="container mx-auto flex items-center justify-between text-sm">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <Badge variant={settings.scanningEnabled ? "granted" : "denied"}>
               {settings.scanningEnabled ? "Scanning Active" : "Scanning Paused"}
             </Badge>
-            <span className="text-sidebar-foreground/70">
-              {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
-            </span>
+            <div className="flex items-center gap-4 text-sidebar-foreground/70">
+              <div className="flex items-center gap-1.5 border-l border-white/10 pl-4">
+                <Clock className="w-3.5 h-3.5" />
+                <span>
+                  {new Date().toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })}
+                </span>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 border-l border-white/10 pl-4">
+                <span className="text-[10px] uppercase font-bold text-white/40">
+                  Settings:
+                </span>
+                <span className="text-xs font-mono">
+                  B:{settings.mealWindows.breakfast.start}-
+                  {settings.mealWindows.breakfast.end} | L:
+                  {settings.mealWindows.lunch.start}-
+                  {settings.mealWindows.lunch.end} | D:
+                  {settings.mealWindows.dinner.start}-
+                  {settings.mealWindows.dinner.end}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="text-sidebar-foreground/70">
-            Staff ID: {staff?.staffId}
+          <div className="text-sidebar-foreground/70 flex items-center gap-3">
+            <span>Staff ID: {staff?.staffId}</span>
           </div>
         </div>
       </footer>

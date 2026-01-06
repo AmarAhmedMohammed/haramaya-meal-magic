@@ -50,8 +50,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Student, CafeStatus, CafeteriaType } from "@/types";
-import { subscribeToStudents, createStudent, updateStudent, deleteStudent } from "@/lib/firestore";
 import { getCafeteriaTypeLabel } from "@/lib/mealLogic";
+import { useStudents } from "@/contexts/StudentsContext";
 import {
   Search,
   Plus,
@@ -94,11 +94,17 @@ export default function Students() {
   const { admin } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    students,
+    loading,
+    addStudent: contextAddStudent,
+    updateStudent: contextUpdateStudent,
+    deleteStudent: contextDeleteStudent,
+  } = useStudents();
 
   // Check if user is admin
-  const isAdmin = admin?.role === 'super_admin' || admin?.role === 'registrar_admin';
+  const isAdmin =
+    admin?.role === "super_admin" || admin?.role === "registrar_admin";
 
   // Dialog states
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -107,16 +113,6 @@ export default function Students() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [formData, setFormData] = useState<StudentFormData>(emptyFormData);
-
-  // Subscribe to real-time student updates
-  useEffect(() => {
-    const unsubscribe = subscribeToStudents((updatedStudents) => {
-      setStudents(updatedStudents);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
 
   const filteredStudents = students.filter(
     (student) =>
@@ -150,28 +146,24 @@ export default function Students() {
     }
 
     try {
-      await createStudent({
+      const success = await contextAddStudent({
         studentId: formData.studentId,
         fullName: formData.fullName,
         fullNameAmharic: formData.fullNameAmharic,
-        email: '',
+        email: "",
         department: formData.department,
         year: formData.year,
         cafeStatus: formData.cafeStatus,
         cafeteriaType: formData.cafeteriaType,
         hostelResident: formData.hostelResident,
         monthlyQuota: formData.monthlyQuota,
-        usedQuota: 0,
-        status: 'active',
+        status: "active",
       });
 
-      setIsAddDialogOpen(false);
-      setFormData(emptyFormData);
-
-      toast({
-        title: "Student Added",
-        description: `${formData.fullName} has been added successfully.`,
-      });
+      if (success) {
+        setIsAddDialogOpen(false);
+        setFormData(emptyFormData);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -192,7 +184,7 @@ export default function Students() {
     }
 
     try {
-      await updateStudent(selectedStudent.studentId, {
+      const success = await contextUpdateStudent(selectedStudent.studentId, {
         fullName: formData.fullName,
         fullNameAmharic: formData.fullNameAmharic,
         department: formData.department,
@@ -203,14 +195,16 @@ export default function Students() {
         monthlyQuota: formData.monthlyQuota,
       });
 
-      setIsEditDialogOpen(false);
-      setSelectedStudent(null);
-      setFormData(emptyFormData);
+      if (success) {
+        setIsEditDialogOpen(false);
+        setSelectedStudent(null);
+        setFormData(emptyFormData);
 
-      toast({
-        title: "Student Updated",
-        description: `${formData.fullName}'s information has been updated.`,
-      });
+        toast({
+          title: "Student Updated",
+          description: `${formData.fullName}'s information has been updated.`,
+        });
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -224,15 +218,17 @@ export default function Students() {
     if (!selectedStudent) return;
 
     try {
-      await deleteStudent(selectedStudent.studentId);
-      setIsDeleteDialogOpen(false);
+      const success = await contextDeleteStudent(selectedStudent.studentId);
+      if (success) {
+        setIsDeleteDialogOpen(false);
 
-      toast({
-        title: "Student Deleted",
-        description: `${selectedStudent.fullName} has been removed from the system.`,
-      });
+        toast({
+          title: "Student Deleted",
+          description: `${selectedStudent.fullName} has been removed from the system.`,
+        });
 
-      setSelectedStudent(null);
+        setSelectedStudent(null);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -275,14 +271,14 @@ export default function Students() {
 
   const getCafeteriaTypeBadgeVariant = (type: CafeteriaType) => {
     switch (type) {
-      case 'muslim':
-        return 'secondary';
-      case 'christian':
-        return 'outline';
-      case 'fresh':
-        return 'default';
+      case "muslim":
+        return "secondary";
+      case "christian":
+        return "outline";
+      case "fresh":
+        return "default";
       default:
-        return 'outline';
+        return "outline";
     }
   };
 
@@ -296,7 +292,9 @@ export default function Students() {
               {t("students")}
             </h1>
             <p className="text-muted-foreground mt-1">
-              {isAdmin ? "Manage student meal registrations" : "View student meal registrations"}
+              {isAdmin
+                ? "Manage student meal registrations"
+                : "View student meal registrations"}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -311,7 +309,11 @@ export default function Students() {
                     });
                   }}
                 />
-                <Button variant="hero" className="gap-2" onClick={openAddDialog}>
+                <Button
+                  variant="hero"
+                  className="gap-2"
+                  onClick={openAddDialog}
+                >
                   <Plus className="w-4 h-4" />
                   Add Student
                 </Button>
@@ -367,7 +369,10 @@ export default function Students() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                      <TableCell
+                        colSpan={8}
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         Loading students...
                       </TableCell>
                     </TableRow>
@@ -423,7 +428,11 @@ export default function Students() {
                           <Badge variant="outline">Year {student.year}</Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={getCafeteriaTypeBadgeVariant(student.cafeteriaType)}>
+                          <Badge
+                            variant={getCafeteriaTypeBadgeVariant(
+                              student.cafeteriaType
+                            )}
+                          >
                             {getCafeteriaTypeLabel(student.cafeteriaType)}
                           </Badge>
                         </TableCell>
@@ -557,7 +566,10 @@ export default function Students() {
                     placeholder="UGPR0680/16"
                     value={formData.studentId}
                     onChange={(e) =>
-                      handleInputChange("studentId", e.target.value.toUpperCase())
+                      handleInputChange(
+                        "studentId",
+                        e.target.value.toUpperCase()
+                      )
                     }
                   />
                   <p className="text-xs text-muted-foreground">
@@ -570,7 +582,9 @@ export default function Students() {
                     id="fullName"
                     placeholder="Amar Ahmed Mohammed"
                     value={formData.fullName}
-                    onChange={(e) => handleInputChange("fullName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("fullName", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -590,7 +604,9 @@ export default function Students() {
                     id="department"
                     placeholder="Information Technology"
                     value={formData.department}
-                    onChange={(e) => handleInputChange("department", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("department", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -598,7 +614,9 @@ export default function Students() {
                     <Label htmlFor="year">Year</Label>
                     <Select
                       value={formData.year.toString()}
-                      onValueChange={(v) => handleInputChange("year", parseInt(v))}
+                      onValueChange={(v) =>
+                        handleInputChange("year", parseInt(v))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -661,7 +679,10 @@ export default function Students() {
                     }
                     className="rounded border-input"
                   />
-                  <Label htmlFor="hostelResident" className="text-sm font-normal">
+                  <Label
+                    htmlFor="hostelResident"
+                    className="text-sm font-normal"
+                  >
                     Hostel Resident
                   </Label>
                 </div>
@@ -697,18 +718,26 @@ export default function Students() {
               <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
                 <div className="space-y-2">
                   <Label>Student ID</Label>
-                  <Input value={formData.studentId} disabled className="bg-muted" />
+                  <Input
+                    value={formData.studentId}
+                    disabled
+                    className="bg-muted"
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-fullName">Full Name (English) *</Label>
                   <Input
                     id="edit-fullName"
                     value={formData.fullName}
-                    onChange={(e) => handleInputChange("fullName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("fullName", e.target.value)
+                    }
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="edit-fullNameAmharic">Full Name (Amharic)</Label>
+                  <Label htmlFor="edit-fullNameAmharic">
+                    Full Name (Amharic)
+                  </Label>
                   <Input
                     id="edit-fullNameAmharic"
                     value={formData.fullNameAmharic}
@@ -722,7 +751,9 @@ export default function Students() {
                   <Input
                     id="edit-department"
                     value={formData.department}
-                    onChange={(e) => handleInputChange("department", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("department", e.target.value)
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -730,7 +761,9 @@ export default function Students() {
                     <Label>Year</Label>
                     <Select
                       value={formData.year.toString()}
-                      onValueChange={(v) => handleInputChange("year", parseInt(v))}
+                      onValueChange={(v) =>
+                        handleInputChange("year", parseInt(v))
+                      }
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -790,7 +823,10 @@ export default function Students() {
                     }
                     className="rounded border-input"
                   />
-                  <Label htmlFor="edit-hostelResident" className="text-sm font-normal">
+                  <Label
+                    htmlFor="edit-hostelResident"
+                    className="text-sm font-normal"
+                  >
                     Hostel Resident
                   </Label>
                 </div>
@@ -859,7 +895,11 @@ export default function Students() {
                   </div>
                   <div>
                     <p className="text-muted-foreground">Cafeteria</p>
-                    <Badge variant={getCafeteriaTypeBadgeVariant(selectedStudent.cafeteriaType)}>
+                    <Badge
+                      variant={getCafeteriaTypeBadgeVariant(
+                        selectedStudent.cafeteriaType
+                      )}
+                    >
                       {getCafeteriaTypeLabel(selectedStudent.cafeteriaType)}
                     </Badge>
                   </div>
@@ -870,7 +910,9 @@ export default function Students() {
                         selectedStudent.cafeStatus === "cafe" ? "cafe" : "none"
                       }
                     >
-                      {selectedStudent.cafeStatus === "cafe" ? "Active" : "Inactive"}
+                      {selectedStudent.cafeStatus === "cafe"
+                        ? "Active"
+                        : "Inactive"}
                     </Badge>
                   </div>
                   <div>
@@ -910,7 +952,9 @@ export default function Students() {
                 <AlertDialogTitle>Delete Student</AlertDialogTitle>
                 <AlertDialogDescription>
                   Are you sure you want to delete{" "}
-                  <span className="font-semibold">{selectedStudent?.fullName}</span>
+                  <span className="font-semibold">
+                    {selectedStudent?.fullName}
+                  </span>
                   ? This action cannot be undone.
                 </AlertDialogDescription>
               </AlertDialogHeader>

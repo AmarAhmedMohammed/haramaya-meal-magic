@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,23 +48,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  createStudent,
-  updateStudent,
-  deleteStudent,
-  subscribeToStudents,
-  getAllStudents,
-} from "@/lib/firestore";
+import { subscribeToStudents, getAllStudents } from "@/lib/firestore";
+import { useStudents } from "@/contexts/StudentsContext";
 import { createSupportTicket } from "@/lib/staffAuth";
 import { Student, CafeStatus, CafeteriaType } from "@/types";
-import { 
-  ref, 
-  uploadBytes, 
-  getDownloadURL 
-} from "firebase/storage";
+import { ref, uploadString, getDownloadURL } from "firebase/storage";
 import { storage } from "@/lib/firebase";
-import { 
-  UserPlus, 
+import {
+  UserPlus,
   Camera,
   Users,
   Edit,
@@ -116,45 +113,66 @@ const departments = [
 ];
 
 export default function RegistrarDashboard() {
-  const { staff, signOut, authType } = useAuth();
+  const { staff, signOut, authType, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  
-  const [students, setStudents] = useState<Student[]>([]);
-  const [loading, setLoading] = useState(true);
+
+  const {
+    students,
+    loading: studentsLoading,
+    addStudent: contextAddStudent,
+    updateStudent: contextUpdateStudent,
+    deleteStudent: contextDeleteStudent,
+  } = useStudents();
+
   const [searchQuery, setSearchQuery] = useState("");
-  
+
   // Form state
   const [formData, setFormData] = useState<StudentFormData>(emptyFormData);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   // Camera state
   const [showCamera, setShowCamera] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   // Dialog states
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isSupportDialogOpen, setIsSupportDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  
+
   // Support ticket
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
 
   useEffect(() => {
-    const unsubscribe = subscribeToStudents((updatedStudents) => {
-      setStudents(updatedStudents);
-      setLoading(false);
-    });
+    // Auto-start camera on mount
+    startCamera();
 
-    return () => unsubscribe();
+    return () => {
+      stopCamera();
+    };
   }, []);
 
-  // Redirect if not registrar
-  if (authType !== 'staff' || staff?.role !== 'registrar') {
+  // Set srcObject when video element is ready
+  useEffect(() => {
+    if (showCamera && stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [showCamera, stream]);
+
+  // Redirect if not registrar (wait for auth loading)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (authType !== "staff" || staff?.role !== "registrar") {
     return <Navigate to="/" replace />;
   }
 
@@ -175,10 +193,8 @@ export default function RegistrarDashboard() {
         },
       });
       setStream(mediaStream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
       setShowCamera(true);
+      // binding is handled by useEffect
     } catch (error) {
       toast({
         title: "Camera Error",
@@ -196,24 +212,45 @@ export default function RegistrarDashboard() {
     setShowCamera(false);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
+
+    // Wait for up to 1 second for the video to be ready if it's not yet
+    let attempts = 0;
+    while ((video.readyState < 2 || video.videoWidth === 0) && attempts < 15) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      attempts++;
+    }
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
-    
+
     if (!ctx) return;
 
-    // Set canvas size for 3:4 ratio (HD quality)
+    // Set canvas size for 3:4 ratio based on video input if possible, otherwise fixed 600x800
+    const width = video.videoWidth || 600;
+    const height = video.videoHeight || 800;
+
     canvas.width = 600;
     canvas.height = 800;
 
-    // Draw video frame to canvas
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Draw video frame to canvas - using the intrinsic video dimensions
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      video.videoWidth,
+      video.videoHeight,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
-    // Get image data
-    const imageData = canvas.toDataURL("image/jpeg", 0.95);
+    // Get image data - Decreased quality to 0.7 for faster upload
+    const imageData = canvas.toDataURL("image/jpeg", 0.7);
     setCapturedImage(imageData);
     stopCamera();
   };
@@ -227,18 +264,43 @@ export default function RegistrarDashboard() {
     if (!capturedImage) return null;
 
     try {
-      // Convert base64 to blob
-      const response = await fetch(capturedImage);
-      const blob = await response.blob();
+      console.log(`Starting photo upload for student: ${studentId}`);
 
-      // Upload to Firebase Storage
+      // Create a promise that rejects after 30 seconds
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("STORAGE_TIMEOUT")), 30000)
+      );
+
+      // Upload to Firebase Storage using uploadString for better reliability with base64
       const storageRef = ref(storage, `student-photos/${studentId}.jpg`);
-      await uploadBytes(storageRef, blob);
-      const downloadURL = await getDownloadURL(storageRef);
 
+      // Race the upload against the timeout
+      await Promise.race([
+        uploadString(storageRef, capturedImage, "data_url"),
+        timeoutPromise,
+      ]).then(() => {
+        console.log("Photo upload string completed successfully");
+      });
+
+      console.log("Fetching download URL...");
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log("Photo upload complete, URL obtained");
       return downloadURL;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading photo:", error);
+      if (
+        error.code === "storage/retry-limit-exceeded" ||
+        error.message === "STORAGE_TIMEOUT"
+      ) {
+        throw new Error(
+          "Upload timed out. Please check your internet connection and try again."
+        );
+      }
+      if (error.code === "storage/unauthorized") {
+        throw new Error(
+          "Permission denied. Please ask an admin to check storage rules."
+        );
+      }
       throw error;
     }
   };
@@ -246,7 +308,12 @@ export default function RegistrarDashboard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.studentId || !formData.fullName || !formData.email || !formData.department) {
+    if (
+      !formData.studentId ||
+      !formData.fullName ||
+      !formData.email ||
+      !formData.department
+    ) {
       toast({
         title: "Validation Error",
         description: "Please fill in all required fields.",
@@ -265,7 +332,7 @@ export default function RegistrarDashboard() {
     }
 
     // Validate unique email
-    const existingByEmail = students.find(s => s.email === formData.email);
+    const existingByEmail = students.find((s) => s.email === formData.email);
     if (existingByEmail) {
       toast({
         title: "Duplicate Email",
@@ -276,7 +343,9 @@ export default function RegistrarDashboard() {
     }
 
     // Validate unique ID
-    const existingById = students.find(s => s.studentId === formData.studentId);
+    const existingById = students.find(
+      (s) => s.studentId === formData.studentId
+    );
     if (existingById) {
       toast({
         title: "Duplicate ID",
@@ -286,44 +355,83 @@ export default function RegistrarDashboard() {
       return;
     }
 
+    console.log("Submission started...");
     setIsSubmitting(true);
 
     try {
-      // Upload photo first
-      const photoURL = await uploadPhoto(formData.studentId);
+      // 0. Whole process timeout (60 seconds)
+      const submissionTimeout = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Global submission timeout reached")),
+          60000
+        )
+      );
 
-      // Create student
-      await createStudent({
-        studentId: formData.studentId,
-        fullName: formData.fullName,
-        fullNameAmharic: formData.fullNameAmharic,
-        email: formData.email,
-        department: formData.department,
-        year: formData.year,
-        cafeStatus: formData.cafeStatus,
-        cafeteriaType: formData.cafeteriaType,
-        hostelResident: false,
-        monthlyQuota: null,
-        usedQuota: 0,
-        status: 'active',
-        photoURL: photoURL || undefined,
-      });
+      const submitProcess = (async () => {
+        // 1. Sanitize the studentId for document ID
+        const originalStudentId = formData.studentId.trim();
+        const sanitizedDocId = originalStudentId.replace(/\//g, "-");
+        console.log(
+          `Registration for student ID: ${originalStudentId} (Sanitized: ${sanitizedDocId})`
+        );
 
-      toast({
-        title: "Student Registered",
-        description: `${formData.fullName} has been registered successfully.`,
-      });
+        // 2. Upload photo first
+        console.log("Handling photo upload...");
+        const photoURL = await uploadPhoto(sanitizedDocId);
+        console.log("Photo URL:", photoURL ? "Success" : "None");
 
-      // Reset form
-      setFormData(emptyFormData);
-      setCapturedImage(null);
+        // 3. Create student using context
+        console.log("Calling contextAddStudent...");
+        const success = await contextAddStudent({
+          studentId: originalStudentId,
+          fullName: formData.fullName,
+          fullNameAmharic: formData.fullNameAmharic,
+          email: formData.email,
+          department: formData.department,
+          year: formData.year,
+          cafeStatus: formData.cafeStatus,
+          cafeteriaType: formData.cafeteriaType,
+          hostelResident: false,
+          monthlyQuota: null,
+          photoURL: photoURL || undefined,
+          status: "active",
+        });
+
+        console.log("contextAddStudent result:", success);
+        return success;
+      })();
+
+      const success = (await Promise.race([
+        submitProcess,
+        submissionTimeout,
+      ])) as boolean;
+
+      if (success) {
+        console.log("Registration successful, resetting form.");
+        // Reset form
+        setFormData(emptyFormData);
+        setCapturedImage(null);
+        toast({
+          title: "Registration Success",
+          description: `${formData.fullName} has been registered successfully.`,
+        });
+      } else {
+        console.warn(
+          "contextAddStudent returned false (likely duplicate or validation failed in context)"
+        );
+        // The toast is likely already shown by the context
+      }
     } catch (error: any) {
+      console.error("CRITICAL ERROR during registration:", error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to register student.",
+        title: "Registration Error",
+        description:
+          error.message ||
+          "Failed to register student. Please check the console or your internet connection.",
         variant: "destructive",
       });
     } finally {
+      console.log("Submission finished.");
       setIsSubmitting(false);
     }
   };
@@ -332,7 +440,7 @@ export default function RegistrarDashboard() {
     if (!selectedStudent) return;
 
     try {
-      await updateStudent(selectedStudent.studentId, {
+      const success = await contextUpdateStudent(selectedStudent.studentId, {
         fullName: formData.fullName,
         fullNameAmharic: formData.fullNameAmharic,
         email: formData.email,
@@ -342,14 +450,11 @@ export default function RegistrarDashboard() {
         cafeStatus: formData.cafeStatus,
       });
 
-      toast({
-        title: "Student Updated",
-        description: `${formData.fullName} has been updated.`,
-      });
-
-      setIsEditDialogOpen(false);
-      setSelectedStudent(null);
-      setFormData(emptyFormData);
+      if (success) {
+        setIsEditDialogOpen(false);
+        setSelectedStudent(null);
+        setFormData(emptyFormData);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -363,13 +468,11 @@ export default function RegistrarDashboard() {
     if (!selectedStudent) return;
 
     try {
-      await deleteStudent(selectedStudent.studentId);
-      toast({
-        title: "Student Deleted",
-        description: `${selectedStudent.fullName} has been removed.`,
-      });
-      setIsDeleteDialogOpen(false);
-      setSelectedStudent(null);
+      const success = await contextDeleteStudent(selectedStudent.studentId);
+      if (success) {
+        setIsDeleteDialogOpen(false);
+        setSelectedStudent(null);
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -395,7 +498,7 @@ export default function RegistrarDashboard() {
         staffName: staff?.fullName || "",
         subject: supportSubject,
         message: supportMessage,
-        status: 'open',
+        status: "open",
       });
 
       toast({
@@ -436,10 +539,18 @@ export default function RegistrarDashboard() {
       <header className="sticky top-0 z-50 bg-sidebar border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <img src={huLogo} alt="HU Logo" className="w-10 h-10 object-contain" />
+            <img
+              src={huLogo}
+              alt="HU Logo"
+              className="w-10 h-10 object-contain"
+            />
             <div>
-              <h1 className="text-lg font-bold text-sidebar-foreground">Registrar Portal</h1>
-              <p className="text-xs text-sidebar-foreground/70">{staff?.fullName}</p>
+              <h1 className="text-lg font-bold text-sidebar-foreground">
+                Registrar Portal
+              </h1>
+              <p className="text-xs text-sidebar-foreground/70">
+                {staff?.fullName}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -501,10 +612,12 @@ export default function RegistrarDashboard() {
                           <Input
                             placeholder="e.g., UGPR0680/16"
                             value={formData.studentId}
-                            onChange={(e) => setFormData(prev => ({ 
-                              ...prev, 
-                              studentId: e.target.value.toUpperCase() 
-                            }))}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                studentId: e.target.value.toUpperCase(),
+                              }))
+                            }
                             className="font-mono"
                           />
                         </div>
@@ -514,10 +627,12 @@ export default function RegistrarDashboard() {
                             type="email"
                             placeholder="student@haramaya.edu.et"
                             value={formData.email}
-                            onChange={(e) => setFormData(prev => ({ 
-                              ...prev, 
-                              email: e.target.value.toLowerCase() 
-                            }))}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                email: e.target.value.toLowerCase(),
+                              }))
+                            }
                           />
                         </div>
                       </div>
@@ -528,7 +643,12 @@ export default function RegistrarDashboard() {
                           <Input
                             placeholder="Full name"
                             value={formData.fullName}
-                            onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                fullName: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                         <div className="space-y-2">
@@ -536,7 +656,12 @@ export default function RegistrarDashboard() {
                           <Input
                             placeholder="ሙሉ ስም"
                             value={formData.fullNameAmharic}
-                            onChange={(e) => setFormData(prev => ({ ...prev, fullNameAmharic: e.target.value }))}
+                            onChange={(e) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                fullNameAmharic: e.target.value,
+                              }))
+                            }
                           />
                         </div>
                       </div>
@@ -546,14 +671,21 @@ export default function RegistrarDashboard() {
                           <Label>Department *</Label>
                           <Select
                             value={formData.department}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                department: value,
+                              }))
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue placeholder="Select department" />
                             </SelectTrigger>
                             <SelectContent>
                               {departments.map((dept) => (
-                                <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                                <SelectItem key={dept} value={dept}>
+                                  {dept}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -562,14 +694,21 @@ export default function RegistrarDashboard() {
                           <Label>Year *</Label>
                           <Select
                             value={formData.year.toString()}
-                            onValueChange={(value) => setFormData(prev => ({ ...prev, year: parseInt(value) }))}
+                            onValueChange={(value) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                year: parseInt(value),
+                              }))
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               {[1, 2, 3, 4, 5, 6, 7].map((year) => (
-                                <SelectItem key={year} value={year.toString()}>Year {year}</SelectItem>
+                                <SelectItem key={year} value={year.toString()}>
+                                  Year {year}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -581,15 +720,26 @@ export default function RegistrarDashboard() {
                           <Label>Cafeteria Type *</Label>
                           <Select
                             value={formData.cafeteriaType}
-                            onValueChange={(value: CafeteriaType) => setFormData(prev => ({ ...prev, cafeteriaType: value }))}
+                            onValueChange={(value: CafeteriaType) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                cafeteriaType: value,
+                              }))
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="muslim">Muslim Cafe</SelectItem>
-                              <SelectItem value="christian">Christian Cafe</SelectItem>
-                              <SelectItem value="fresh">Freshman Cafe</SelectItem>
+                              <SelectItem value="muslim">
+                                Muslim Cafe
+                              </SelectItem>
+                              <SelectItem value="christian">
+                                Christian Cafe
+                              </SelectItem>
+                              <SelectItem value="fresh">
+                                Freshman Cafe
+                              </SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -597,7 +747,12 @@ export default function RegistrarDashboard() {
                           <Label>Meal Status</Label>
                           <Select
                             value={formData.cafeStatus}
-                            onValueChange={(value: CafeStatus) => setFormData(prev => ({ ...prev, cafeStatus: value }))}
+                            onValueChange={(value: CafeStatus) =>
+                              setFormData((prev) => ({
+                                ...prev,
+                                cafeStatus: value,
+                              }))
+                            }
                           >
                             <SelectTrigger>
                               <SelectValue />
@@ -728,15 +883,21 @@ export default function RegistrarDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {loading ? (
+                    {studentsLoading ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-8 text-muted-foreground"
+                        >
                           Loading...
                         </TableCell>
                       </TableRow>
                     ) : filteredStudents.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        <TableCell
+                          colSpan={7}
+                          className="text-center py-8 text-muted-foreground"
+                        >
                           No students found
                         </TableCell>
                       </TableRow>
@@ -760,7 +921,9 @@ export default function RegistrarDashboard() {
                           </TableCell>
                           <TableCell>
                             <p className="font-medium">{student.fullName}</p>
-                            <p className="text-sm text-muted-foreground">{student.email}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {student.email}
+                            </p>
                           </TableCell>
                           <TableCell>
                             <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
@@ -770,13 +933,24 @@ export default function RegistrarDashboard() {
                           <TableCell>{student.department}</TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {student.cafeteriaType === 'muslim' ? 'Muslim' :
-                               student.cafeteriaType === 'christian' ? 'Christian' : 'Freshman'}
+                              {student.cafeteriaType === "muslim"
+                                ? "Muslim"
+                                : student.cafeteriaType === "christian"
+                                ? "Christian"
+                                : "Freshman"}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={student.cafeStatus === 'cafe' ? 'granted' : 'denied'}>
-                              {student.cafeStatus === 'cafe' ? 'Active' : 'Inactive'}
+                            <Badge
+                              variant={
+                                student.cafeStatus === "cafe"
+                                  ? "granted"
+                                  : "denied"
+                              }
+                            >
+                              {student.cafeStatus === "cafe"
+                                ? "Active"
+                                : "Inactive"}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -817,25 +991,30 @@ export default function RegistrarDashboard() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit Student</DialogTitle>
-            <DialogDescription>
-              Update student information
-            </DialogDescription>
+            <DialogDescription>Update student information</DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Full Name</Label>
                 <Input
                   value={formData.fullName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      fullName: e.target.value,
+                    }))
+                  }
                 />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Input
                   value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, email: e.target.value }))
+                  }
                 />
               </div>
             </div>
@@ -845,14 +1024,18 @@ export default function RegistrarDashboard() {
                 <Label>Department</Label>
                 <Select
                   value={formData.department}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, department: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {departments.map((dept) => (
-                      <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                      <SelectItem key={dept} value={dept}>
+                        {dept}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -861,14 +1044,18 @@ export default function RegistrarDashboard() {
                 <Label>Year</Label>
                 <Select
                   value={formData.year.toString()}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, year: parseInt(value) }))}
+                  onValueChange={(value) =>
+                    setFormData((prev) => ({ ...prev, year: parseInt(value) }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {[1, 2, 3, 4, 5, 6, 7].map((year) => (
-                      <SelectItem key={year} value={year.toString()}>Year {year}</SelectItem>
+                      <SelectItem key={year} value={year.toString()}>
+                        Year {year}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -880,7 +1067,9 @@ export default function RegistrarDashboard() {
                 <Label>Cafeteria</Label>
                 <Select
                   value={formData.cafeteriaType}
-                  onValueChange={(value: CafeteriaType) => setFormData(prev => ({ ...prev, cafeteriaType: value }))}
+                  onValueChange={(value: CafeteriaType) =>
+                    setFormData((prev) => ({ ...prev, cafeteriaType: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -896,7 +1085,9 @@ export default function RegistrarDashboard() {
                 <Label>Status</Label>
                 <Select
                   value={formData.cafeStatus}
-                  onValueChange={(value: CafeStatus) => setFormData(prev => ({ ...prev, cafeStatus: value }))}
+                  onValueChange={(value: CafeStatus) =>
+                    setFormData((prev) => ({ ...prev, cafeStatus: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -911,28 +1102,36 @@ export default function RegistrarDashboard() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsEditDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleEditStudent}>
-              Save Changes
-            </Button>
+            <Button onClick={handleEditStudent}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Student?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove {selectedStudent?.fullName} from the system.
+              This will permanently remove {selectedStudent?.fullName} from the
+              system.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteStudent} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={handleDeleteStudent}
+              className="bg-destructive text-destructive-foreground"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -951,7 +1150,7 @@ export default function RegistrarDashboard() {
               Report an issue or request help from admin
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Subject</Label>
@@ -973,7 +1172,10 @@ export default function RegistrarDashboard() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsSupportDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsSupportDialogOpen(false)}
+            >
               Cancel
             </Button>
             <Button onClick={handleSupportSubmit} className="gap-2">

@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,28 +46,26 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  collection, 
-  onSnapshot, 
-  doc, 
-  setDoc, 
-  deleteDoc, 
-  Timestamp 
+import {
+  collection,
+  onSnapshot,
+  doc,
+  setDoc,
+  deleteDoc,
+  Timestamp,
 } from "firebase/firestore";
-import { 
-  createUserWithEmailAndPassword 
-} from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { Admin, UserRole } from "@/types";
-import { 
-  Shield, 
-  Plus, 
-  ArrowLeft, 
-  Trash2, 
-  Copy, 
+import {
+  Shield,
+  Plus,
+  ArrowLeft,
+  Trash2,
+  Copy,
   Check,
   UserCog,
-  Key
+  Key,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -116,7 +120,7 @@ export default function ManageAdmins() {
   } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
-  const isSuperAdmin = currentAdmin?.role === 'super_admin';
+  const isSuperAdmin = currentAdmin?.role === "super_admin";
 
   useEffect(() => {
     const adminsRef = collection(db, "admins");
@@ -184,13 +188,16 @@ export default function ManageAdmins() {
 
       toast({
         title: "Admin Created",
-        description: `${formData.displayName} has been added as ${formData.role.replace("_", " ")}.`,
+        description: `${
+          formData.displayName
+        } has been added as ${formData.role.replace("_", " ")}.`,
       });
     } catch (error: any) {
       console.error("Error creating admin:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to create admin. Please try again.",
+        description:
+          error.message || "Failed to create admin. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -203,7 +210,7 @@ export default function ManageAdmins() {
 
     try {
       await deleteDoc(doc(db, "admins", selectedAdmin.uid));
-      
+
       toast({
         title: "Admin Deleted",
         description: `${selectedAdmin.displayName} has been removed.`,
@@ -246,7 +253,9 @@ export default function ManageAdmins() {
     return (
       <Layout>
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
+          <h1 className="text-2xl font-bold text-foreground mb-4">
+            Access Denied
+          </h1>
           <p className="text-muted-foreground mb-6">
             Only super admins can manage admin users.
           </p>
@@ -267,7 +276,7 @@ export default function ManageAdmins() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Link to="/dashboard">
+            <Link to="/admin/dashboard">
               <Button variant="ghost" size="icon">
                 <ArrowLeft className="w-5 h-5" />
               </Button>
@@ -281,7 +290,11 @@ export default function ManageAdmins() {
               </p>
             </div>
           </div>
-          <Button variant="hero" className="gap-2" onClick={() => setIsAddDialogOpen(true)}>
+          <Button
+            variant="hero"
+            className="gap-2"
+            onClick={() => setIsAddDialogOpen(true)}
+          >
             <Plus className="w-4 h-4" />
             Add Admin
           </Button>
@@ -314,13 +327,19 @@ export default function ManageAdmins() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         Loading admins...
                       </TableCell>
                     </TableRow>
                   ) : admins.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      <TableCell
+                        colSpan={6}
+                        className="text-center py-8 text-muted-foreground"
+                      >
                         No admins found
                       </TableCell>
                     </TableRow>
@@ -392,7 +411,7 @@ export default function ManageAdmins() {
                 Create a new admin account. A password will be auto-generated.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address *</Label>
@@ -411,7 +430,9 @@ export default function ManageAdmins() {
                   id="displayName"
                   placeholder="Full name"
                   value={formData.displayName}
-                  onChange={(e) => handleInputChange("displayName", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("displayName", e.target.value)
+                  }
                 />
               </div>
 
@@ -419,33 +440,44 @@ export default function ManageAdmins() {
                 <Label htmlFor="role">Role *</Label>
                 <Select
                   value={formData.role}
-                  onValueChange={(value: UserRole) => handleInputChange("role", value)}
+                  onValueChange={(value: UserRole) =>
+                    handleInputChange("role", value)
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="super_admin">Super Admin</SelectItem>
-                    <SelectItem value="registrar_admin">Registrar Admin</SelectItem>
-                    <SelectItem value="cafeteria_manager">Cafeteria Manager</SelectItem>
+                    <SelectItem value="registrar_admin">
+                      Registrar Admin
+                    </SelectItem>
+                    <SelectItem value="cafeteria_manager">
+                      Cafeteria Manager
+                    </SelectItem>
                     <SelectItem value="cashier">Cashier</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              {(formData.role === "cafeteria_manager" || formData.role === "cashier") && (
+              {(formData.role === "cafeteria_manager" ||
+                formData.role === "cashier") && (
                 <div className="space-y-2">
                   <Label htmlFor="cafeteriaId">Assigned Cafeteria</Label>
                   <Select
                     value={formData.cafeteriaId}
-                    onValueChange={(value) => handleInputChange("cafeteriaId", value)}
+                    onValueChange={(value) =>
+                      handleInputChange("cafeteriaId", value)
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select cafeteria" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="CAF-MUSLIM">Muslim Cafe</SelectItem>
-                      <SelectItem value="CAF-CHRISTIAN">Christian Cafe</SelectItem>
+                      <SelectItem value="CAF-CHRISTIAN">
+                        Christian Cafe
+                      </SelectItem>
                       <SelectItem value="CAF-FRESH">Freshman Cafe</SelectItem>
                     </SelectContent>
                   </Select>
@@ -454,7 +486,10 @@ export default function ManageAdmins() {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsAddDialogOpen(false)}
+              >
                 Cancel
               </Button>
               <Button onClick={handleAddAdmin} disabled={isSubmitting}>
@@ -465,7 +500,10 @@ export default function ManageAdmins() {
         </Dialog>
 
         {/* Credentials Dialog */}
-        <Dialog open={isCredentialsDialogOpen} onOpenChange={setIsCredentialsDialogOpen}>
+        <Dialog
+          open={isCredentialsDialogOpen}
+          onOpenChange={setIsCredentialsDialogOpen}
+        >
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -473,10 +511,11 @@ export default function ManageAdmins() {
                 Admin Credentials Created
               </DialogTitle>
               <DialogDescription>
-                Save these credentials securely. The password cannot be retrieved later.
+                Save these credentials securely. The password cannot be
+                retrieved later.
               </DialogDescription>
             </DialogHeader>
-            
+
             {newCredentials && (
               <div className="space-y-4">
                 <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
@@ -489,12 +528,16 @@ export default function ManageAdmins() {
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div>
                       <p className="text-xs text-muted-foreground">Admin ID</p>
-                      <p className="font-mono font-medium">{newCredentials.adminId}</p>
+                      <p className="font-mono font-medium">
+                        {newCredentials.adminId}
+                      </p>
                     </div>
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => copyToClipboard(newCredentials.adminId, "adminId")}
+                      onClick={() =>
+                        copyToClipboard(newCredentials.adminId, "adminId")
+                      }
                     >
                       {copiedField === "adminId" ? (
                         <Check className="w-4 h-4 text-success" />
@@ -507,12 +550,16 @@ export default function ManageAdmins() {
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div>
                       <p className="text-xs text-muted-foreground">Email</p>
-                      <p className="font-mono font-medium">{newCredentials.email}</p>
+                      <p className="font-mono font-medium">
+                        {newCredentials.email}
+                      </p>
                     </div>
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => copyToClipboard(newCredentials.email, "email")}
+                      onClick={() =>
+                        copyToClipboard(newCredentials.email, "email")
+                      }
                     >
                       {copiedField === "email" ? (
                         <Check className="w-4 h-4 text-success" />
@@ -525,12 +572,16 @@ export default function ManageAdmins() {
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <div>
                       <p className="text-xs text-muted-foreground">Password</p>
-                      <p className="font-mono font-medium">{newCredentials.password}</p>
+                      <p className="font-mono font-medium">
+                        {newCredentials.password}
+                      </p>
                     </div>
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => copyToClipboard(newCredentials.password, "password")}
+                      onClick={() =>
+                        copyToClipboard(newCredentials.password, "password")
+                      }
                     >
                       {copiedField === "password" ? (
                         <Check className="w-4 h-4 text-success" />
@@ -544,10 +595,12 @@ export default function ManageAdmins() {
             )}
 
             <DialogFooter>
-              <Button onClick={() => {
-                setIsCredentialsDialogOpen(false);
-                setNewCredentials(null);
-              }}>
+              <Button
+                onClick={() => {
+                  setIsCredentialsDialogOpen(false);
+                  setNewCredentials(null);
+                }}
+              >
                 Done
               </Button>
             </DialogFooter>
@@ -555,12 +608,15 @@ export default function ManageAdmins() {
         </Dialog>
 
         {/* Delete Confirmation Dialog */}
-        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialog
+          open={isDeleteDialogOpen}
+          onOpenChange={setIsDeleteDialogOpen}
+        >
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Admin</AlertDialogTitle>
               <AlertDialogDescription>
-                Are you sure you want to delete {selectedAdmin?.displayName}? 
+                Are you sure you want to delete {selectedAdmin?.displayName}?
                 This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>

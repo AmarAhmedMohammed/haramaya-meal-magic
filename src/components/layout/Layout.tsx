@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   LayoutDashboard,
@@ -60,7 +60,7 @@ const adminNavItems: NavItem[] = [
 
 // Filter nav items by role
 function filterByRole(items: NavItem[], admin: any): NavItem[] {
-  return items.filter(item => {
+  return items.filter((item) => {
     if (!item.roles) return true;
     if (!admin) return false;
     return item.roles.includes(admin.role);
@@ -72,13 +72,25 @@ interface LayoutProps {
 }
 
 export function Layout({ children }: LayoutProps) {
-  const { admin, signOut } = useAuth();
+  const { admin, staff, signOut } = useAuth();
   const { t, language, setLanguage } = useLanguage();
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
+  const handleLogout = async () => {
+    try {
+      setMobileMenuOpen(false);
+      await signOut();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Even if there's an error, try to navigate home
+      navigate("/");
+    }
+  };
+
   const toggleLanguage = () => {
-    // Cycle through: en -> am -> or -> en
     if (language === "en") {
       setLanguage("am");
     } else if (language === "am") {
@@ -89,46 +101,59 @@ export function Layout({ children }: LayoutProps) {
   };
 
   const getLanguageDisplay = () => {
-    if (language === "en") return "አማርኛ"; // Show next language
-    if (language === "am") return "Oromiffa"; // Show next language
-    return "English"; // Show next language
+    if (language === "en") return "አማርኛ";
+    if (language === "am") return "Oromiffa";
+    return "English";
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-sidebar px-6 pb-4">
+        <div className="flex grow flex-col gap-y-5 overflow-y-auto bg-sidebar px-6 pb-4 border-r border-sidebar-border">
           {/* Logo */}
           <div className="flex h-20 items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
-              <span className="text-sidebar-primary-foreground font-bold text-xl">
+            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg shadow-accent/20">
+              <span className="text-accent-foreground font-bold text-xl">
                 H
               </span>
             </div>
             <div>
-              <h1 className="text-sidebar-foreground font-display font-bold text-lg">
+              <h1 className="text-sidebar-foreground font-display font-bold text-lg tracking-tight">
                 Haramaya
               </h1>
-              <p className="text-sidebar-foreground/70 text-xs">Meal System</p>
+              <p className="text-sidebar-foreground/70 text-xs font-medium">
+                Meal System
+              </p>
             </div>
           </div>
 
           {/* Navigation */}
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-2">
-              {/* Main Nav Items */}
               {filterByRole(mainNavItems, admin).map((item) => {
-                const isActive = location.pathname === item.href;
+                let href = item.href;
+                if (item.label === "Dashboard") {
+                  if (admin) {
+                    href = "/admin/dashboard";
+                  } else if (staff) {
+                    href =
+                      staff.role === "registrar"
+                        ? "/registrar/dashboard"
+                        : "/cafe/dashboard";
+                  }
+                }
+
+                const isActive = location.pathname === href;
                 return (
-                  <li key={item.href}>
+                  <li key={item.label}>
                     <Link
-                      to={item.href}
+                      to={href}
                       className={cn(
-                        "group flex gap-x-3 rounded-lg p-3 text-sm font-medium transition-all duration-200",
+                        "group flex gap-x-3 rounded-xl p-3 text-sm font-medium transition-all duration-200",
                         isActive
-                          ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                          : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                       )}
                     >
                       {item.icon}
@@ -138,12 +163,11 @@ export function Layout({ children }: LayoutProps) {
                 );
               })}
 
-              {/* Admin Section */}
               {filterByRole(adminNavItems, admin).length > 0 && (
                 <>
-                  <li className="mt-4">
-                    <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 mb-2">
-                      Admin
+                  <li className="mt-6 mb-2">
+                    <p className="text-[10px] font-bold text-sidebar-foreground/50 uppercase tracking-[0.2em] px-3">
+                      Administrative
                     </p>
                   </li>
                   {filterByRole(adminNavItems, admin).map((item) => {
@@ -153,10 +177,10 @@ export function Layout({ children }: LayoutProps) {
                         <Link
                           to={item.href}
                           className={cn(
-                            "group flex gap-x-3 rounded-lg p-3 text-sm font-medium transition-all duration-200",
+                            "group flex gap-x-3 rounded-xl p-3 text-sm font-medium transition-all duration-200",
                             isActive
-                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                              ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                              : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                           )}
                         >
                           {item.icon}
@@ -181,30 +205,32 @@ export function Layout({ children }: LayoutProps) {
                 {getLanguageDisplay()}
               </Button>
 
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent/30">
-                <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center">
-                  <span className="text-sidebar-primary-foreground text-sm font-medium">
-                    {admin?.displayName?.[0] || "A"}
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-sidebar-accent/50 border border-sidebar-border/50">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-inner">
+                  <span className="text-primary-foreground text-sm font-bold uppercase">
+                    {admin?.displayName?.[0] || staff?.fullName?.[0] || "U"}
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">
-                    {admin?.displayName || "Admin"}
+                  <p className="text-sm font-bold text-sidebar-foreground truncate">
+                    {admin?.displayName || staff?.fullName || "User"}
                   </p>
-                  <p className="text-xs text-sidebar-foreground/60 truncate">
-                    {admin?.role?.replace("_", " ")}
+                  <p className="text-[10px] text-sidebar-foreground/60 truncate uppercase tracking-wider">
+                    {admin
+                      ? admin.role?.replace("_", " ")
+                      : staff?.role?.replace("_", " ")}
                   </p>
                 </div>
               </div>
 
               <Button
                 variant="ghost"
-                size="sm"
-                onClick={signOut}
-                className="w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
+                size="default"
+                onClick={handleLogout}
+                className="w-full justify-start text-sidebar-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
               >
                 <LogOut className="w-5 h-5 mr-3" />
-                {t("logout")}
+                <span className="font-medium">{t("logout")}</span>
               </Button>
             </div>
           </nav>
@@ -248,23 +274,23 @@ export function Layout({ children }: LayoutProps) {
           className="fixed inset-0 z-50 lg:hidden"
         >
           <div
-            className="fixed inset-0 bg-foreground/50"
+            className="fixed inset-0 bg-background/80 backdrop-blur-sm"
             onClick={() => setMobileMenuOpen(false)}
           />
           <motion.div
             initial={{ x: -280 }}
             animate={{ x: 0 }}
             exit={{ x: -280 }}
-            className="fixed inset-y-0 left-0 w-full max-w-xs bg-sidebar"
+            className="fixed inset-y-0 left-0 w-full max-w-xs bg-sidebar border-r border-sidebar-border shadow-2xl"
           >
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-sidebar-primary flex items-center justify-center">
-                  <span className="text-sidebar-primary-foreground font-bold">
+            <div className="flex items-center justify-between p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shadow-lg shadow-accent/20">
+                  <span className="text-accent-foreground font-bold text-xl">
                     H
                   </span>
                 </div>
-                <span className="text-sidebar-foreground font-display font-bold">
+                <span className="text-sidebar-foreground font-display font-bold text-lg">
                   Haramaya
                 </span>
               </div>
@@ -272,24 +298,36 @@ export function Layout({ children }: LayoutProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => setMobileMenuOpen(false)}
-                className="text-sidebar-foreground"
+                className="text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
               >
                 <X className="w-6 h-6" />
               </Button>
             </div>
             <nav className="px-4 py-2">
               {filterByRole(mainNavItems, admin).map((item) => {
-                const isActive = location.pathname === item.href;
+                let href = item.href;
+                if (item.label === "Dashboard") {
+                  if (admin) {
+                    href = "/admin/dashboard";
+                  } else if (staff) {
+                    href =
+                      staff.role === "registrar"
+                        ? "/registrar/dashboard"
+                        : "/cafe/dashboard";
+                  }
+                }
+
+                const isActive = location.pathname === href;
                 return (
                   <Link
-                    key={item.href}
-                    to={item.href}
+                    key={item.label}
+                    to={href}
                     onClick={() => setMobileMenuOpen(false)}
                     className={cn(
-                      "flex gap-x-3 rounded-lg p-3 text-sm font-medium mb-1",
+                      "flex gap-x-3 rounded-xl p-3 text-sm font-medium transition-all duration-200 mb-1",
                       isActive
-                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
+                        ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                     )}
                   >
                     {item.icon}
@@ -298,11 +336,10 @@ export function Layout({ children }: LayoutProps) {
                 );
               })}
 
-              {/* Admin Section */}
               {filterByRole(adminNavItems, admin).length > 0 && (
                 <>
-                  <p className="text-xs font-semibold text-sidebar-foreground/50 uppercase tracking-wider px-3 mt-4 mb-2">
-                    Admin
+                  <p className="text-[10px] font-bold text-sidebar-foreground/50 uppercase tracking-[0.2em] px-3 mt-6 mb-2">
+                    Administrative
                   </p>
                   {filterByRole(adminNavItems, admin).map((item) => {
                     const isActive = location.pathname === item.href;
@@ -312,10 +349,10 @@ export function Layout({ children }: LayoutProps) {
                         to={item.href}
                         onClick={() => setMobileMenuOpen(false)}
                         className={cn(
-                          "flex gap-x-3 rounded-lg p-3 text-sm font-medium mb-1",
+                          "flex gap-x-3 rounded-xl p-3 text-sm font-medium transition-all duration-200 mb-1",
                           isActive
-                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50"
+                            ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                            : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                         )}
                       >
                         {item.icon}
@@ -325,6 +362,37 @@ export function Layout({ children }: LayoutProps) {
                   })}
                 </>
               )}
+
+              {/* Mobile User Section */}
+              <div className="mt-8 pt-6 border-t border-sidebar-border space-y-4">
+                <div className="flex items-center gap-3 px-3">
+                  <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                    <span className="text-primary-foreground font-medium">
+                      {admin?.displayName?.[0] || staff?.fullName?.[0] || "U"}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sidebar-foreground truncate">
+                      {admin?.displayName || staff?.fullName || "User"}
+                    </p>
+                    <p className="text-[10px] text-sidebar-foreground/60 truncate uppercase tracking-wider">
+                      {admin
+                        ? admin.role?.replace("_", " ")
+                        : staff?.role?.replace("_", " ")}
+                    </p>
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="default"
+                  onClick={handleLogout}
+                  className="w-full justify-start text-sidebar-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
+                >
+                  <LogOut className="w-5 h-5 mr-3" />
+                  {t("logout")}
+                </Button>
+              </div>
             </nav>
           </motion.div>
         </motion.div>
@@ -332,7 +400,9 @@ export function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <main className="lg:pl-64">
-        <div className="px-4 py-6 sm:px-6 lg:px-8">{children}</div>
+        <div className="px-4 py-6 sm:px-6 lg:px-8 bg-background min-h-screen">
+          {children}
+        </div>
       </main>
     </div>
   );

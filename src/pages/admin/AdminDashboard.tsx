@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,8 +50,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMealSettings } from "@/contexts/MealSettingsContext";
-import { 
-  subscribeToStudents, 
+import {
+  subscribeToStudents,
   updateStudent,
   deleteStudent,
   subscribeToMealLogs,
@@ -53,11 +59,11 @@ import {
 import { subscribeToStaff, deleteStaff, createStaff } from "@/lib/staffAuth";
 import { Student, Staff, StaffRole, CafeteriaType, MealLog } from "@/types";
 import * as XLSX from "xlsx";
-import { 
-  Clock, 
-  Users, 
-  Upload, 
-  Trash2, 
+import {
+  Clock,
+  Users,
+  Upload,
+  Trash2,
   Edit,
   UserX,
   GraduationCap,
@@ -94,15 +100,16 @@ const emptyStaffForm: StaffFormData = {
 };
 
 export default function AdminDashboard() {
-  const { admin, authType } = useAuth();
+  const { admin, authType, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const { settings, updateMealWindow, updateScanningEnabled } = useMealSettings();
-  
+  const { settings, updateMealWindow, updateScanningEnabled } =
+    useMealSettings();
+
   const [students, setStudents] = useState<Student[]>([]);
   const [staff, setStaff] = useState<Staff[]>([]);
   const [mealLogs, setMealLogs] = useState<MealLog[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Dialog states
   const [isAddStaffOpen, setIsAddStaffOpen] = useState(false);
   const [isDeleteStaffOpen, setIsDeleteStaffOpen] = useState(false);
@@ -110,21 +117,30 @@ export default function AdminDashboard() {
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [staffForm, setStaffForm] = useState<StaffFormData>(emptyStaffForm);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newCredentials, setNewCredentials] = useState<{ staffId: string; email: string } | null>(null);
+  const [newCredentials, setNewCredentials] = useState<{
+    staffId: string;
+    email: string;
+  } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  
+
   // Student action dialogs
   const [isStatusDialogOpen, setIsStatusDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
-  const [studentAction, setStudentAction] = useState<'none' | 'graduated' | 'persecuted' | 'suspended'>('none');
-  
+  const [studentAction, setStudentAction] = useState<
+    "none" | "graduated" | "persecuted" | "suspended"
+  >("none");
+
   // Import dialog
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [importType, setImportType] = useState<'graduated' | 'persecuted'>('graduated');
+  const [importType, setImportType] = useState<"graduated" | "persecuted">(
+    "graduated"
+  );
   const [importFile, setImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<{ id: string; name?: string }[]>([]);
+  const [importPreview, setImportPreview] = useState<
+    { id: string; name?: string }[]
+  >([]);
 
-  const isSuperAdmin = admin?.role === 'super_admin';
+  const isSuperAdmin = admin?.role === "super_admin";
 
   useEffect(() => {
     const unsubStudents = subscribeToStudents((updatedStudents) => {
@@ -147,17 +163,31 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  // Redirect if not admin
-  if (authType !== 'admin') {
+  // Redirect if not admin (wait for auth loading)
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Activity className="w-10 h-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (authType !== "admin") {
     return <Navigate to="/" replace />;
   }
 
-  const handleMealTimeChange = (meal: 'breakfast' | 'lunch' | 'dinner', field: 'start' | 'end', value: string) => {
+  const handleMealTimeChange = (
+    meal: "breakfast" | "lunch" | "dinner",
+    field: "start" | "end",
+    value: string
+  ) => {
     const currentWindow = settings.mealWindows[meal];
     updateMealWindow(meal, { ...currentWindow, [field]: value });
     toast({
       title: "Settings Updated",
-      description: `${meal.charAt(0).toUpperCase() + meal.slice(1)} time updated.`,
+      description: `${
+        meal.charAt(0).toUpperCase() + meal.slice(1)
+      } time updated.`,
     });
   };
 
@@ -178,8 +208,10 @@ export default function AdminDashboard() {
         fullName: staffForm.fullName,
         phoneNumber: staffForm.phoneNumber,
         role: staffForm.role,
-        cafeteriaType: staffForm.role === 'cafe_service' ? staffForm.cafeteriaType : undefined,
         isActive: true,
+        ...(staffForm.role === "cafe_service"
+          ? { cafeteriaType: staffForm.cafeteriaType }
+          : {}),
       });
 
       setNewCredentials({
@@ -208,7 +240,7 @@ export default function AdminDashboard() {
 
   const handleDeleteStaff = async () => {
     if (!selectedStaff) return;
-    
+
     try {
       await deleteStaff(selectedStaff.staffId);
       toast({
@@ -230,10 +262,14 @@ export default function AdminDashboard() {
     if (!selectedStudent) return;
 
     try {
-      const newStatus = studentAction === 'none' ? 'active' : studentAction;
-      const newCafeStatus = studentAction === 'none' ? 'cafe' : 'none';
+      const newStatus = studentAction === "none" ? "active" : studentAction;
+      const newCafeStatus = studentAction === "none" ? "cafe" : "none";
       await updateStudent(selectedStudent.studentId, {
-        status: newStatus as 'active' | 'graduated' | 'persecuted' | 'suspended',
+        status: newStatus as
+          | "active"
+          | "graduated"
+          | "persecuted"
+          | "suspended",
         cafeStatus: newCafeStatus,
       });
 
@@ -241,7 +277,7 @@ export default function AdminDashboard() {
         title: "Student Status Updated",
         description: `${selectedStudent.fullName} has been marked as ${studentAction}.`,
       });
-      
+
       setIsStatusDialogOpen(false);
       setSelectedStudent(null);
     } catch (error) {
@@ -302,11 +338,11 @@ export default function AdminDashboard() {
         for (const row of jsonData) {
           const studentId = row.studentId || row.id || row.ID || row.StudentId;
           if (studentId) {
-            const existing = students.find(s => s.studentId === studentId);
+            const existing = students.find((s) => s.studentId === studentId);
             if (existing) {
               await updateStudent(studentId, {
                 status: importType,
-                cafeStatus: 'none',
+                cafeStatus: "none",
               });
               updated++;
             }
@@ -340,7 +376,7 @@ export default function AdminDashboard() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
-  const todayLogs = mealLogs.filter(log => {
+  const todayLogs = mealLogs.filter((log) => {
     const today = new Date();
     const logDate = new Date(log.timestamp);
     return logDate.toDateString() === today.toDateString();
@@ -348,16 +384,19 @@ export default function AdminDashboard() {
 
   const stats = {
     totalStudents: students.length,
-    activeStudents: students.filter(s => s.status === 'active' && s.cafeStatus === 'cafe').length,
-    nonCafeStudents: students.filter(s => s.cafeStatus === 'none').length,
-    graduatedStudents: students.filter(s => s.status === 'graduated').length,
-    persecutedStudents: students.filter(s => s.status === 'persecuted').length,
-    todayMeals: todayLogs.filter(l => l.result === 'granted').length,
-    todayDenied: todayLogs.filter(l => l.result === 'denied').length,
+    activeStudents: students.filter(
+      (s) => s.status === "active" && s.cafeStatus === "cafe"
+    ).length,
+    nonCafeStudents: students.filter((s) => s.cafeStatus === "none").length,
+    graduatedStudents: students.filter((s) => s.status === "graduated").length,
+    persecutedStudents: students.filter((s) => s.status === "persecuted")
+      .length,
+    todayMeals: todayLogs.filter((l) => l.result === "granted").length,
+    todayDenied: todayLogs.filter((l) => l.result === "denied").length,
   };
 
-  const registrars = staff.filter(s => s.role === 'registrar');
-  const cafeStaff = staff.filter(s => s.role === 'cafe_service');
+  const registrars = staff.filter((s) => s.role === "registrar");
+  const cafeStaff = staff.filter((s) => s.role === "cafe_service");
 
   return (
     <Layout>
@@ -365,8 +404,12 @@ export default function AdminDashboard() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-muted-foreground mt-1">Manage meal system settings, staff, and students</p>
+            <h1 className="text-3xl font-display font-bold text-foreground">
+              Admin Dashboard
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage meal system settings, staff, and students
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant={settings.scanningEnabled ? "granted" : "denied"}>
@@ -381,8 +424,12 @@ export default function AdminDashboard() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Active Students</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.activeStudents}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Active Students
+                  </p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.activeStudents}
+                  </p>
                 </div>
                 <div className="p-2 bg-success/10 rounded-lg">
                   <Users className="w-5 h-5 text-success" />
@@ -390,13 +437,15 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card variant="elevated">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Non-Cafe</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.nonCafeStudents}</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.nonCafeStudents}
+                  </p>
                 </div>
                 <div className="p-2 bg-warning/10 rounded-lg">
                   <UserX className="w-5 h-5 text-warning" />
@@ -404,13 +453,15 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card variant="elevated">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Today's Meals</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.todayMeals}</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.todayMeals}
+                  </p>
                 </div>
                 <div className="p-2 bg-accent/10 rounded-lg">
                   <CheckCircle2 className="w-5 h-5 text-accent" />
@@ -418,13 +469,15 @@ export default function AdminDashboard() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card variant="elevated">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted-foreground">Denied Today</p>
-                  <p className="text-2xl font-bold text-foreground">{stats.todayDenied}</p>
+                  <p className="text-2xl font-bold text-foreground">
+                    {stats.todayDenied}
+                  </p>
                 </div>
                 <div className="p-2 bg-destructive/10 rounded-lg">
                   <XCircle className="w-5 h-5 text-destructive" />
@@ -464,7 +517,8 @@ export default function AdminDashboard() {
                   Meal Time Settings
                 </CardTitle>
                 <CardDescription>
-                  Configure meal service windows. Scanning auto-starts/stops based on these times.
+                  Configure meal service windows. Scanning auto-starts/stops
+                  based on these times.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -481,7 +535,13 @@ export default function AdminDashboard() {
                     <Input
                       type="time"
                       value={settings.mealWindows.breakfast.start}
-                      onChange={(e) => handleMealTimeChange('breakfast', 'start', e.target.value)}
+                      onChange={(e) =>
+                        handleMealTimeChange(
+                          "breakfast",
+                          "start",
+                          e.target.value
+                        )
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -489,7 +549,9 @@ export default function AdminDashboard() {
                     <Input
                       type="time"
                       value={settings.mealWindows.breakfast.end}
-                      onChange={(e) => handleMealTimeChange('breakfast', 'end', e.target.value)}
+                      onChange={(e) =>
+                        handleMealTimeChange("breakfast", "end", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -507,7 +569,9 @@ export default function AdminDashboard() {
                     <Input
                       type="time"
                       value={settings.mealWindows.lunch.start}
-                      onChange={(e) => handleMealTimeChange('lunch', 'start', e.target.value)}
+                      onChange={(e) =>
+                        handleMealTimeChange("lunch", "start", e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -515,7 +579,9 @@ export default function AdminDashboard() {
                     <Input
                       type="time"
                       value={settings.mealWindows.lunch.end}
-                      onChange={(e) => handleMealTimeChange('lunch', 'end', e.target.value)}
+                      onChange={(e) =>
+                        handleMealTimeChange("lunch", "end", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -533,7 +599,9 @@ export default function AdminDashboard() {
                     <Input
                       type="time"
                       value={settings.mealWindows.dinner.start}
-                      onChange={(e) => handleMealTimeChange('dinner', 'start', e.target.value)}
+                      onChange={(e) =>
+                        handleMealTimeChange("dinner", "start", e.target.value)
+                      }
                     />
                   </div>
                   <div className="space-y-2">
@@ -541,7 +609,9 @@ export default function AdminDashboard() {
                     <Input
                       type="time"
                       value={settings.mealWindows.dinner.end}
-                      onChange={(e) => handleMealTimeChange('dinner', 'end', e.target.value)}
+                      onChange={(e) =>
+                        handleMealTimeChange("dinner", "end", e.target.value)
+                      }
                     />
                   </div>
                 </div>
@@ -551,7 +621,8 @@ export default function AdminDashboard() {
                   <div>
                     <p className="font-medium">Manual Scanning Control</p>
                     <p className="text-sm text-muted-foreground">
-                      Override auto-start/stop to enable or disable scanning manually
+                      Override auto-start/stop to enable or disable scanning
+                      manually
                     </p>
                   </div>
                   <Switch
@@ -559,9 +630,11 @@ export default function AdminDashboard() {
                     onCheckedChange={(checked) => {
                       updateScanningEnabled(checked);
                       toast({
-                        title: checked ? "Scanning Enabled" : "Scanning Disabled",
-                        description: checked 
-                          ? "Cafe service can now scan students." 
+                        title: checked
+                          ? "Scanning Enabled"
+                          : "Scanning Disabled",
+                        description: checked
+                          ? "Cafe service can now scan students."
                           : "Scanning has been paused.",
                       });
                     }}
@@ -576,9 +649,15 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-semibold">Staff Management</h2>
-                <p className="text-muted-foreground">Manage registrar and cafe service staff</p>
+                <p className="text-muted-foreground">
+                  Manage registrar and cafe service staff
+                </p>
               </div>
-              <Button variant="hero" className="gap-2" onClick={() => setIsAddStaffOpen(true)}>
+              <Button
+                variant="hero"
+                className="gap-2"
+                onClick={() => setIsAddStaffOpen(true)}
+              >
                 <UserPlus className="w-4 h-4" />
                 Add Staff
               </Button>
@@ -588,7 +667,9 @@ export default function AdminDashboard() {
             <Card variant="elevated">
               <CardHeader>
                 <CardTitle>Registrars ({registrars.length})</CardTitle>
-                <CardDescription>Staff who can register students</CardDescription>
+                <CardDescription>
+                  Staff who can register students
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -605,17 +686,24 @@ export default function AdminDashboard() {
                   <TableBody>
                     {registrars.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                        <TableCell
+                          colSpan={6}
+                          className="text-center py-6 text-muted-foreground"
+                        >
                           No registrars found
                         </TableCell>
                       </TableRow>
                     ) : (
                       registrars.map((s) => (
                         <TableRow key={s.staffId}>
-                          <TableCell className="font-medium">{s.fullName}</TableCell>
+                          <TableCell className="font-medium">
+                            {s.fullName}
+                          </TableCell>
                           <TableCell>{s.email}</TableCell>
                           <TableCell>
-                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{s.staffId}</code>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                              {s.staffId}
+                            </code>
                           </TableCell>
                           <TableCell>{s.phoneNumber}</TableCell>
                           <TableCell>
@@ -648,7 +736,9 @@ export default function AdminDashboard() {
             <Card variant="elevated">
               <CardHeader>
                 <CardTitle>Cafe Service ({cafeStaff.length})</CardTitle>
-                <CardDescription>Staff who operate the scanning terminals</CardDescription>
+                <CardDescription>
+                  Staff who operate the scanning terminals
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -665,22 +755,32 @@ export default function AdminDashboard() {
                   <TableBody>
                     {cafeStaff.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
+                        <TableCell
+                          colSpan={6}
+                          className="text-center py-6 text-muted-foreground"
+                        >
                           No cafe service staff found
                         </TableCell>
                       </TableRow>
                     ) : (
                       cafeStaff.map((s) => (
                         <TableRow key={s.staffId}>
-                          <TableCell className="font-medium">{s.fullName}</TableCell>
+                          <TableCell className="font-medium">
+                            {s.fullName}
+                          </TableCell>
                           <TableCell>{s.email}</TableCell>
                           <TableCell>
-                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{s.staffId}</code>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                              {s.staffId}
+                            </code>
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline">
-                              {s.cafeteriaType === 'muslim' ? 'Muslim Cafe' : 
-                               s.cafeteriaType === 'christian' ? 'Christian Cafe' : 'Freshman Cafe'}
+                              {s.cafeteriaType === "muslim"
+                                ? "Muslim Cafe"
+                                : s.cafeteriaType === "christian"
+                                ? "Christian Cafe"
+                                : "Freshman Cafe"}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -715,20 +815,30 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center">
               <div>
                 <h2 className="text-xl font-semibold">Student Management</h2>
-                <p className="text-muted-foreground">Set student statuses and import bulk changes</p>
+                <p className="text-muted-foreground">
+                  Set student statuses and import bulk changes
+                </p>
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" className="gap-2" onClick={() => {
-                  setImportType('graduated');
-                  setIsImportDialogOpen(true);
-                }}>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    setImportType("graduated");
+                    setIsImportDialogOpen(true);
+                  }}
+                >
                   <GraduationCap className="w-4 h-4" />
                   Import Graduated
                 </Button>
-                <Button variant="outline" className="gap-2" onClick={() => {
-                  setImportType('persecuted');
-                  setIsImportDialogOpen(true);
-                }}>
+                <Button
+                  variant="outline"
+                  className="gap-2"
+                  onClick={() => {
+                    setImportType("persecuted");
+                    setIsImportDialogOpen(true);
+                  }}
+                >
                   <Ban className="w-4 h-4" />
                   Import Persecuted
                 </Button>
@@ -739,25 +849,33 @@ export default function AdminDashboard() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Card className="bg-success/10 border-success/30">
                 <CardContent className="p-4 text-center">
-                  <p className="text-3xl font-bold text-success">{stats.activeStudents}</p>
+                  <p className="text-3xl font-bold text-success">
+                    {stats.activeStudents}
+                  </p>
                   <p className="text-sm text-success/80">Active Students</p>
                 </CardContent>
               </Card>
               <Card className="bg-warning/10 border-warning/30">
                 <CardContent className="p-4 text-center">
-                  <p className="text-3xl font-bold text-warning">{stats.nonCafeStudents}</p>
+                  <p className="text-3xl font-bold text-warning">
+                    {stats.nonCafeStudents}
+                  </p>
                   <p className="text-sm text-warning/80">Non-Cafe</p>
                 </CardContent>
               </Card>
               <Card className="bg-muted">
                 <CardContent className="p-4 text-center">
-                  <p className="text-3xl font-bold text-muted-foreground">{stats.graduatedStudents}</p>
+                  <p className="text-3xl font-bold text-muted-foreground">
+                    {stats.graduatedStudents}
+                  </p>
                   <p className="text-sm text-muted-foreground">Graduated</p>
                 </CardContent>
               </Card>
               <Card className="bg-destructive/10 border-destructive/30">
                 <CardContent className="p-4 text-center">
-                  <p className="text-3xl font-bold text-destructive">{stats.persecutedStudents}</p>
+                  <p className="text-3xl font-bold text-destructive">
+                    {stats.persecutedStudents}
+                  </p>
                   <p className="text-sm text-destructive/80">Persecuted</p>
                 </CardContent>
               </Card>
@@ -786,41 +904,60 @@ export default function AdminDashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {students.filter(s => s.cafeStatus === 'none' || s.status !== 'active').slice(0, 20).map((student) => (
-                      <TableRow key={student.studentId}>
-                        <TableCell className="font-medium">{student.fullName}</TableCell>
-                        <TableCell>
-                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded">{student.studentId}</code>
-                        </TableCell>
-                        <TableCell>{student.department}</TableCell>
-                        <TableCell>
-                          <Badge variant={
-                            student.status === 'graduated' ? 'outline' :
-                            student.status === 'persecuted' ? 'denied' :
-                            student.status === 'suspended' ? 'denied' :
-                            'none'
-                          }>
-                            {student.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => {
-                              setSelectedStudent(student);
-                              setStudentAction(student.status as any);
-                              setIsStatusDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {students.filter(s => s.cafeStatus === 'none' || s.status !== 'active').length === 0 && (
+                    {students
+                      .filter(
+                        (s) => s.cafeStatus === "none" || s.status !== "active"
+                      )
+                      .slice(0, 20)
+                      .map((student) => (
+                        <TableRow key={student.studentId}>
+                          <TableCell className="font-medium">
+                            {student.fullName}
+                          </TableCell>
+                          <TableCell>
+                            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">
+                              {student.studentId}
+                            </code>
+                          </TableCell>
+                          <TableCell>{student.department}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                student.status === "graduated"
+                                  ? "outline"
+                                  : student.status === "persecuted"
+                                  ? "denied"
+                                  : student.status === "suspended"
+                                  ? "denied"
+                                  : "none"
+                              }
+                            >
+                              {student.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                setSelectedStudent(student);
+                                setStudentAction(student.status as any);
+                                setIsStatusDialogOpen(true);
+                              }}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    {students.filter(
+                      (s) => s.cafeStatus === "none" || s.status !== "active"
+                    ).length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                        <TableCell
+                          colSpan={5}
+                          className="text-center py-6 text-muted-foreground"
+                        >
                           All students are active
                         </TableCell>
                       </TableRow>
@@ -836,7 +973,9 @@ export default function AdminDashboard() {
             <Card variant="elevated">
               <CardHeader>
                 <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Latest meal scans and system events</CardDescription>
+                <CardDescription>
+                  Latest meal scans and system events
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -855,24 +994,37 @@ export default function AdminDashboard() {
                         <TableCell className="text-muted-foreground">
                           {new Date(log.timestamp).toLocaleTimeString()}
                         </TableCell>
-                        <TableCell className="font-medium">{log.studentName}</TableCell>
+                        <TableCell className="font-medium">
+                          {log.studentName}
+                        </TableCell>
                         <TableCell>
-                          <Badge variant={log.mealType as any}>{log.mealType}</Badge>
+                          <Badge variant={log.mealType as any}>
+                            {log.mealType}
+                          </Badge>
                         </TableCell>
                         <TableCell>{log.cafeteriaName}</TableCell>
                         <TableCell>
-                          <Badge variant={log.result === 'granted' ? 'granted' : 'denied'}>
+                          <Badge
+                            variant={
+                              log.result === "granted" ? "granted" : "denied"
+                            }
+                          >
                             {log.result}
                           </Badge>
                           {log.reason && (
-                            <span className="block text-xs text-muted-foreground mt-1">{log.reason}</span>
+                            <span className="block text-xs text-muted-foreground mt-1">
+                              {log.reason}
+                            </span>
                           )}
                         </TableCell>
                       </TableRow>
                     ))}
                     {mealLogs.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center py-6 text-muted-foreground">
+                        <TableCell
+                          colSpan={5}
+                          className="text-center py-6 text-muted-foreground"
+                        >
                           No activity recorded yet
                         </TableCell>
                       </TableRow>
@@ -894,13 +1046,15 @@ export default function AdminDashboard() {
               Create a new staff account. Staff ID will be auto-generated.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Role *</Label>
               <Select
                 value={staffForm.role}
-                onValueChange={(value: StaffRole) => setStaffForm(prev => ({ ...prev, role: value }))}
+                onValueChange={(value: StaffRole) =>
+                  setStaffForm((prev) => ({ ...prev, role: value }))
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -917,7 +1071,12 @@ export default function AdminDashboard() {
               <Input
                 placeholder="Enter full name"
                 value={staffForm.fullName}
-                onChange={(e) => setStaffForm(prev => ({ ...prev, fullName: e.target.value }))}
+                onChange={(e) =>
+                  setStaffForm((prev) => ({
+                    ...prev,
+                    fullName: e.target.value,
+                  }))
+                }
               />
             </div>
 
@@ -927,7 +1086,9 @@ export default function AdminDashboard() {
                 type="email"
                 placeholder="email@haramaya.edu.et"
                 value={staffForm.email}
-                onChange={(e) => setStaffForm(prev => ({ ...prev, email: e.target.value }))}
+                onChange={(e) =>
+                  setStaffForm((prev) => ({ ...prev, email: e.target.value }))
+                }
               />
             </div>
 
@@ -936,16 +1097,23 @@ export default function AdminDashboard() {
               <Input
                 placeholder="+251 9XX XXX XXX"
                 value={staffForm.phoneNumber}
-                onChange={(e) => setStaffForm(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                onChange={(e) =>
+                  setStaffForm((prev) => ({
+                    ...prev,
+                    phoneNumber: e.target.value,
+                  }))
+                }
               />
             </div>
 
-            {staffForm.role === 'cafe_service' && (
+            {staffForm.role === "cafe_service" && (
               <div className="space-y-2">
                 <Label>Assigned Cafeteria *</Label>
                 <Select
                   value={staffForm.cafeteriaType}
-                  onValueChange={(value: CafeteriaType) => setStaffForm(prev => ({ ...prev, cafeteriaType: value }))}
+                  onValueChange={(value: CafeteriaType) =>
+                    setStaffForm((prev) => ({ ...prev, cafeteriaType: value }))
+                  }
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -977,10 +1145,11 @@ export default function AdminDashboard() {
           <DialogHeader>
             <DialogTitle>Staff Credentials Created</DialogTitle>
             <DialogDescription>
-              Share these credentials with the staff member. The Staff ID is used for login.
+              Share these credentials with the staff member. The Staff ID is
+              used for login.
             </DialogDescription>
           </DialogHeader>
-          
+
           {newCredentials && (
             <div className="space-y-4">
               <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg">
@@ -993,12 +1162,16 @@ export default function AdminDashboard() {
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
                     <p className="text-xs text-muted-foreground">Email</p>
-                    <p className="font-mono font-medium">{newCredentials.email}</p>
+                    <p className="font-mono font-medium">
+                      {newCredentials.email}
+                    </p>
                   </div>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => copyToClipboard(newCredentials.email, "email")}
+                    onClick={() =>
+                      copyToClipboard(newCredentials.email, "email")
+                    }
                   >
                     {copiedField === "email" ? (
                       <Check className="w-4 h-4 text-success" />
@@ -1010,13 +1183,19 @@ export default function AdminDashboard() {
 
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                   <div>
-                    <p className="text-xs text-muted-foreground">Staff ID (Password)</p>
-                    <p className="font-mono font-medium">{newCredentials.staffId}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Staff ID (Password)
+                    </p>
+                    <p className="font-mono font-medium">
+                      {newCredentials.staffId}
+                    </p>
                   </div>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => copyToClipboard(newCredentials.staffId, "staffId")}
+                    onClick={() =>
+                      copyToClipboard(newCredentials.staffId, "staffId")
+                    }
                   >
                     {copiedField === "staffId" ? (
                       <Check className="w-4 h-4 text-success" />
@@ -1041,12 +1220,16 @@ export default function AdminDashboard() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Staff Member?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove {selectedStaff?.fullName} from the system. They will no longer be able to login.
+              This will permanently remove {selectedStaff?.fullName} from the
+              system. They will no longer be able to login.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteStaff} className="bg-destructive text-destructive-foreground">
+            <AlertDialogAction
+              onClick={handleDeleteStaff}
+              className="bg-destructive text-destructive-foreground"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -1062,7 +1245,7 @@ export default function AdminDashboard() {
               Change the status for {selectedStudent?.fullName}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <Select
               value={studentAction}
@@ -1075,19 +1258,22 @@ export default function AdminDashboard() {
                 <SelectItem value="active">Active (Can use cafe)</SelectItem>
                 <SelectItem value="none">Non-Cafe (No access)</SelectItem>
                 <SelectItem value="graduated">Graduated</SelectItem>
-                <SelectItem value="persecuted">Persecuted from University</SelectItem>
+                <SelectItem value="persecuted">
+                  Persecuted from University
+                </SelectItem>
                 <SelectItem value="suspended">Suspended</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsStatusDialogOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsStatusDialogOpen(false)}
+            >
               Cancel
             </Button>
-            <Button onClick={handleSetStudentStatus}>
-              Update Status
-            </Button>
+            <Button onClick={handleSetStudentStatus}>Update Status</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1097,18 +1283,20 @@ export default function AdminDashboard() {
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              {importType === 'graduated' ? (
+              {importType === "graduated" ? (
                 <GraduationCap className="w-5 h-5" />
               ) : (
                 <Ban className="w-5 h-5 text-destructive" />
               )}
-              Import {importType === 'graduated' ? 'Graduated' : 'Persecuted'} Students
+              Import {importType === "graduated" ? "Graduated" : "Persecuted"}{" "}
+              Students
             </DialogTitle>
             <DialogDescription>
-              Upload an Excel file (.xlsx) with student IDs to mark as {importType}.
+              Upload an Excel file (.xlsx) with student IDs to mark as{" "}
+              {importType}.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div className="border-2 border-dashed border-muted rounded-lg p-6 text-center">
               <Upload className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
@@ -1128,7 +1316,10 @@ export default function AdminDashboard() {
                 <p className="text-sm font-medium">Preview (first 10 rows):</p>
                 <div className="max-h-40 overflow-y-auto bg-muted rounded-lg p-2">
                   {importPreview.map((row, i) => (
-                    <div key={i} className="text-sm py-1 border-b border-border last:border-0">
+                    <div
+                      key={i}
+                      className="text-sm py-1 border-b border-border last:border-0"
+                    >
                       <code>{row.id}</code> {row.name && `- ${row.name}`}
                     </div>
                   ))}
@@ -1138,17 +1329,20 @@ export default function AdminDashboard() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsImportDialogOpen(false);
-              setImportFile(null);
-              setImportPreview([]);
-            }}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsImportDialogOpen(false);
+                setImportFile(null);
+                setImportPreview([]);
+              }}
+            >
               Cancel
             </Button>
-            <Button 
-              onClick={handleImportStudents} 
+            <Button
+              onClick={handleImportStudents}
               disabled={!importFile || isSubmitting}
-              variant={importType === 'persecuted' ? 'destructive' : 'default'}
+              variant={importType === "persecuted" ? "destructive" : "default"}
             >
               {isSubmitting ? "Importing..." : `Import as ${importType}`}
             </Button>
