@@ -16,6 +16,26 @@ import {
 import { db } from "./firebase";
 import type { Student, Cafeteria, MealLog, SystemSettings } from "@/types";
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object") return false;
+  return Object.getPrototypeOf(value) === Object.prototype;
+}
+
+function stripUndefinedDeep<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((v) => stripUndefinedDeep(v)) as T;
+  }
+
+  if (isPlainObject(value)) {
+    const entries = Object.entries(value)
+      .filter(([, v]) => v !== undefined)
+      .map(([k, v]) => [k, stripUndefinedDeep(v)] as const);
+    return Object.fromEntries(entries) as T;
+  }
+
+  return value;
+}
+
 // =============================================
 // STUDENTS
 // =============================================
@@ -26,11 +46,11 @@ export async function createStudent(
   try {
     const docId = studentData.studentId.replace(/\//g, "-");
     const studentRef = doc(db, "students", docId);
-    const studentDoc = {
+    const studentDoc = stripUndefinedDeep({
       ...studentData,
       createdAt: Timestamp.now(),
       updatedAt: Timestamp.now(),
-    };
+    });
     await setDoc(studentRef, studentDoc);
     return { success: true, id: studentData.studentId };
   } catch (error) {
@@ -46,10 +66,11 @@ export async function updateStudent(
   try {
     const docId = studentId.replace(/\//g, "-");
     const studentRef = doc(db, "students", docId);
-    await updateDoc(studentRef, {
+    const updatePayload = stripUndefinedDeep({
       ...updates,
       updatedAt: Timestamp.now(),
     });
+    await updateDoc(studentRef, updatePayload);
     return { success: true };
   } catch (error) {
     console.error("Error updating student:", error);
@@ -195,9 +216,9 @@ export async function searchStudents(searchTerm: string): Promise<Student[]> {
 export async function createCafeteria(cafeteriaData: Omit<Cafeteria, "id">) {
   try {
     const cafeteriaRef = doc(db, "cafeterias", cafeteriaData.cafeteriaId);
-    const cafeteriaDoc = {
+    const cafeteriaDoc = stripUndefinedDeep({
       ...cafeteriaData,
-    };
+    });
     await setDoc(cafeteriaRef, cafeteriaDoc);
     return { success: true, id: cafeteriaData.cafeteriaId };
   } catch (error) {
@@ -212,9 +233,10 @@ export async function updateCafeteria(
 ) {
   try {
     const cafeteriaRef = doc(db, "cafeterias", cafeteriaId);
-    await updateDoc(cafeteriaRef, {
+    const updatePayload = stripUndefinedDeep({
       ...updates,
     });
+    await updateDoc(cafeteriaRef, updatePayload);
     return { success: true };
   } catch (error) {
     console.error("Error updating cafeteria:", error);
@@ -283,14 +305,11 @@ export async function getMealSettings(): Promise<SystemSettings | null> {
 export async function updateMealSettings(settings: Partial<SystemSettings>) {
   try {
     const settingsRef = doc(db, "settings", "mealSettings");
-    await setDoc(
-      settingsRef,
-      {
-        ...settings,
-        updatedAt: Timestamp.now(),
-      },
-      { merge: true }
-    );
+    const payload = stripUndefinedDeep({
+      ...settings,
+      updatedAt: Timestamp.now(),
+    });
+    await setDoc(settingsRef, payload, { merge: true });
     return { success: true };
   } catch (error) {
     console.error("Error updating meal settings:", error);
@@ -305,10 +324,10 @@ export async function updateMealSettings(settings: Partial<SystemSettings>) {
 export async function createMealLog(logData: Omit<MealLog, "id">) {
   try {
     const logRef = doc(collection(db, "mealLogs"));
-    const logDoc = {
+    const logDoc = stripUndefinedDeep({
       ...logData,
       timestamp: Timestamp.now(),
-    };
+    });
     await setDoc(logRef, logDoc);
     return { success: true, id: logRef.id };
   } catch (error) {
@@ -550,7 +569,7 @@ export async function updateStudentLastMeal(
   try {
     const docId = studentId.replace(/\//g, "-");
     const studentRef = doc(db, "students", docId);
-    await updateDoc(studentRef, {
+    const payload = stripUndefinedDeep({
       lastMeal: {
         mealType,
         timestamp: Timestamp.now(),
@@ -558,6 +577,7 @@ export async function updateStudentLastMeal(
       },
       updatedAt: Timestamp.now(),
     });
+    await updateDoc(studentRef, payload);
     return { success: true };
   } catch (error) {
     console.error("Error updating student last meal:", error);
