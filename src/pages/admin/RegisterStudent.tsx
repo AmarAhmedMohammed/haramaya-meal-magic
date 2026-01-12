@@ -18,6 +18,7 @@ import { useStudents } from "@/contexts/StudentsContext";
 import { CafeStatus, CafeteriaType } from "@/types";
 import { UserPlus, ArrowLeft, Save, RefreshCw, Camera, Upload, RotateCcw } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { compressImageToFit } from "@/lib/imageUtils";
 
 interface StudentFormData {
   studentId: string;
@@ -191,6 +192,17 @@ export default function RegisterStudent() {
     setIsSubmitting(true);
 
     try {
+      // Compress image if present to fit within Firestore limits
+      let compressedPhoto: string | undefined;
+      if (capturedImage) {
+        try {
+          compressedPhoto = await compressImageToFit(capturedImage, 400);
+        } catch (compressError) {
+          console.error("Image compression failed:", compressError);
+          compressedPhoto = undefined;
+        }
+      }
+
       const success = await contextAddStudent({
         studentId: formData.studentId,
         fullName: formData.fullName,
@@ -202,7 +214,7 @@ export default function RegisterStudent() {
         cafeteriaType: formData.cafeteriaType,
         hostelResident: formData.hostelResident,
         monthlyQuota: formData.monthlyQuota,
-        photoURL: capturedImage || undefined,
+        photoURL: compressedPhoto,
         status: 'active',
       });
 

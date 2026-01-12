@@ -52,8 +52,7 @@ import { subscribeToStudents, getAllStudents } from "@/lib/firestore";
 import { useStudents } from "@/contexts/StudentsContext";
 import { createSupportTicket } from "@/lib/staffAuth";
 import { Student, CafeStatus, CafeteriaType } from "@/types";
-// import { ref, uploadString, getDownloadURL } from "firebase/storage";
-// import { storage } from "@/lib/firebase";
+import { compressImageToFit } from "@/lib/imageUtils";
 import {
   UserPlus,
   Camera,
@@ -298,9 +297,17 @@ export default function RegistrarDashboard() {
   const processPhoto = async (studentId: string): Promise<string | null> => {
     if (!capturedImage) return null;
 
-    // Return base64 string directly to be stored in Firestore
-    console.log(`Using base64 photo for student: ${studentId}`);
-    return capturedImage;
+    try {
+      // Compress image to fit within Firestore document limits
+      console.log(`Compressing photo for student: ${studentId}`);
+      const compressedImage = await compressImageToFit(capturedImage, 400);
+      console.log(`Photo compressed successfully`);
+      return compressedImage;
+    } catch (error) {
+      console.error("Image compression failed:", error);
+      // Return original if compression fails (may fail if too large)
+      return capturedImage;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
