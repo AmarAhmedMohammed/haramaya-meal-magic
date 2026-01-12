@@ -56,7 +56,7 @@ import {
   deleteStudent,
   subscribeToMealLogs,
 } from "@/lib/firestore";
-import { subscribeToStaff, deleteStaff, createStaff } from "@/lib/staffAuth";
+import { subscribeToStaff, deleteStaff, createStaff, updateStaff } from "@/lib/staffAuth";
 import { Student, Staff, StaffRole, CafeteriaType, MealLog } from "@/types";
 import * as XLSX from "xlsx";
 import {
@@ -289,6 +289,22 @@ export default function AdminDashboard() {
       toast({
         title: "Error",
         description: "Failed to delete staff.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleStaffStatus = async (staffMember: Staff) => {
+    try {
+      await updateStaff(staffMember.staffId, { isActive: !staffMember.isActive });
+      toast({
+        title: staffMember.isActive ? "Staff Deactivated" : "Staff Activated",
+        description: `${staffMember.fullName} has been ${staffMember.isActive ? "deactivated" : "activated"}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update staff status.",
         variant: "destructive",
       });
     }
@@ -747,7 +763,14 @@ export default function AdminDashboard() {
                               {s.isActive ? "Active" : "Inactive"}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="space-x-1">
+                            <Button
+                              size="sm"
+                              variant={s.isActive ? "outline" : "default"}
+                              onClick={() => handleToggleStaffStatus(s)}
+                            >
+                              {s.isActive ? "Deactivate" : "Activate"}
+                            </Button>
                             <Button
                               size="sm"
                               variant="ghost"
@@ -824,7 +847,14 @@ export default function AdminDashboard() {
                               {s.isActive ? "Active" : "Inactive"}
                             </Badge>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="space-x-1">
+                            <Button
+                              size="sm"
+                              variant={s.isActive ? "outline" : "default"}
+                              onClick={() => handleToggleStaffStatus(s)}
+                            >
+                              {s.isActive ? "Deactivate" : "Activate"}
+                            </Button>
                             <Button
                               size="sm"
                               variant="ghost"

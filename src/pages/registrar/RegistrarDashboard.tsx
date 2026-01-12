@@ -53,6 +53,8 @@ import { useStudents } from "@/contexts/StudentsContext";
 import { createSupportTicket } from "@/lib/staffAuth";
 import { Student, CafeStatus, CafeteriaType } from "@/types";
 import { compressImageToFit } from "@/lib/imageUtils";
+import { InactiveStaffModal } from "@/components/InactiveStaffModal";
+import { useStaffStatus } from "@/hooks/useStaffStatus";
 import {
   UserPlus,
   Camera,
@@ -115,6 +117,9 @@ const departments = [
 export default function RegistrarDashboard() {
   const { staff, signOut, authType, loading: authLoading } = useAuth();
   const { toast } = useToast();
+
+  // Real-time staff status check
+  const { isActive: staffIsActive, loading: statusLoading } = useStaffStatus(staff?.staffId);
 
   const {
     students,
@@ -1207,6 +1212,13 @@ export default function RegistrarDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inactive Staff Modal */}
+      <InactiveStaffModal
+        isOpen={!statusLoading && !staffIsActive}
+        onLogout={signOut}
+        staffName={staff?.fullName}
+      />
     </div>
   );
 }
