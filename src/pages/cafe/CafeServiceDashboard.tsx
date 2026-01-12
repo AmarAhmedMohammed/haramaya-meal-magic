@@ -15,6 +15,8 @@ import {
   subscribeToStudents,
 } from "@/lib/firestore";
 import { Student, MealType, CafeteriaType } from "@/types";
+import { InactiveStaffModal } from "@/components/InactiveStaffModal";
+import { useStaffStatus } from "@/hooks/useStaffStatus";
 import {
   ScanLine,
   Search,
@@ -49,6 +51,9 @@ export default function CafeServiceDashboard() {
   const { staff, signOut, authType, loading: authLoading } = useAuth();
   const { settings } = useMealSettings();
   const { toast } = useToast();
+
+  // Real-time staff status check
+  const { isActive: staffIsActive, loading: statusLoading } = useStaffStatus(staff?.staffId);
 
   const [students, setStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -725,7 +730,12 @@ export default function CafeServiceDashboard() {
         </div>
       </footer>
 
-      {/* QR/Barcode Scanner Modal */}
+      {/* Inactive Staff Modal */}
+      <InactiveStaffModal
+        isOpen={!statusLoading && !staffIsActive}
+        onLogout={signOut}
+        staffName={staff?.fullName}
+      />
     </div>
   );
 }
