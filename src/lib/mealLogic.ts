@@ -24,44 +24,69 @@ const DEFAULT_MEAL_WINDOWS: SystemSettings['mealWindows'] = {
   dinner: { start: '17:30', end: '20:00' }
 };
 
-export function getCurrentMealType(time: Date = new Date(), settings?: SystemSettings): MealType | null {
+export function getCurrentMealType(
+  time: Date = new Date(),
+  settings?: SystemSettings
+): MealType | null {
   const windows = settings?.mealWindows || DEFAULT_MEAL_WINDOWS;
-  const currentTime = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
-  
-  if (currentTime >= windows.breakfast.start && currentTime <= windows.breakfast.end) {
-    return 'breakfast';
+
+  const toMinutes = (timeStr: string) => {
+    const [h, m] = timeStr.split(":").map(Number);
+    return h * 60 + m;
+  };
+
+  const currentMinutes = time.getHours() * 60 + time.getMinutes();
+
+  const isTimeInRange = (startStr: string, endStr: string) => {
+    const start = toMinutes(startStr);
+    const end = toMinutes(endStr);
+
+    if (Number.isNaN(start) || Number.isNaN(end)) return false;
+
+    // Normal same-day range
+    if (start <= end) {
+      return currentMinutes >= start && currentMinutes <= end;
+    }
+
+    // Crosses midnight (e.g., 22:00 to 02:00)
+    return currentMinutes >= start || currentMinutes <= end;
+  };
+
+  if (isTimeInRange(windows.breakfast.start, windows.breakfast.end)) {
+    return "breakfast";
   }
-  if (currentTime >= windows.lunch.start && currentTime <= windows.lunch.end) {
-    return 'lunch';
+  if (isTimeInRange(windows.lunch.start, windows.lunch.end)) {
+    return "lunch";
   }
-  if (currentTime >= windows.dinner.start && currentTime <= windows.dinner.end) {
-    return 'dinner';
+  if (isTimeInRange(windows.dinner.start, windows.dinner.end)) {
+    return "dinner";
   }
-  
+
   return null;
 }
 
-export function getNextMealWindow(time: Date = new Date(), settings?: SystemSettings): { mealType: MealType; startTime: Date } | null {
+export function getNextMealWindow(
+  time: Date = new Date(),
+  settings?: SystemSettings
+): { mealType: MealType; startTime: Date } | null {
   const windows = settings?.mealWindows || DEFAULT_MEAL_WINDOWS;
-  const currentTime = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
-  
-  const meals: MealType[] = ['breakfast', 'lunch', 'dinner'];
-  
-  for (const meal of meals) {
-    if (currentTime < windows[meal].start) {
-      const [hours, minutes] = windows[meal].start.split(':').map(Number);
-      const startTime = new Date(time);
-      startTime.setHours(hours, minutes, 0, 0);
-      return { mealType: meal, startTime };
+  const meals: MealType[] = ["breakfast", "lunch", "dinner"];
+
+  const candidates = meals.map((meal) => {
+    const [hours, minutes] = windows[meal].start.split(":").map(Number);
+    const startTime = new Date(time);
+    startTime.setHours(hours, minutes, 0, 0);
+
+    // If start time already passed today, schedule it for tomorrow
+    if (startTime.getTime() <= time.getTime()) {
+      startTime.setDate(startTime.getDate() + 1);
     }
-  }
-  
-  // Next breakfast tomorrow
-  const [hours, minutes] = windows.breakfast.start.split(':').map(Number);
-  const tomorrow = new Date(time);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(hours, minutes, 0, 0);
-  return { mealType: 'breakfast', startTime: tomorrow };
+
+    return { mealType: meal, startTime };
+  });
+
+  candidates.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  return candidates[0] ?? null;
 }
 
 export function getCafeteriaTypeLabel(type: CafeteriaType): string {
