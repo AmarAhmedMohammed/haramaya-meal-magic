@@ -86,15 +86,11 @@ export default function CafeServiceDashboard() {
     return () => unsubscribe();
   }, []);
 
-  // Determine current meal based on time
+  // Determine current meal based on time - live update every 10 seconds and when settings change
   useEffect(() => {
     const checkMealTime = () => {
       const now = new Date();
       const currentMinutes = now.getHours() * 60 + now.getMinutes();
-      const currentTimeStr = `${now
-        .getHours()
-        .toString()
-        .padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
       const { mealWindows } = settings;
 
@@ -106,10 +102,12 @@ export default function CafeServiceDashboard() {
       const isTimeInRange = (startStr: string, endStr: string) => {
         const start = toMinutes(startStr);
         const end = toMinutes(endStr);
+        if (Number.isNaN(start) || Number.isNaN(end)) return false;
+        
         if (start <= end) {
           return currentMinutes >= start && currentMinutes <= end;
         } else {
-          // Crosses midnight (e.g., 22:00 to 02:00)
+          // Crosses midnight (e.g., 17:00 to 00:00)
           return currentMinutes >= start || currentMinutes <= end;
         }
       };
@@ -131,8 +129,9 @@ export default function CafeServiceDashboard() {
       }
     };
 
+    // Check immediately and every 10 seconds for responsive updates
     checkMealTime();
-    const interval = setInterval(checkMealTime, 60000); // Check every minute
+    const interval = setInterval(checkMealTime, 10000);
 
     return () => clearInterval(interval);
   }, [settings]);
