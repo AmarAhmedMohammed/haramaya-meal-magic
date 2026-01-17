@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Utensils, Coffee, Sun, Moon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +18,14 @@ const mealIcons: Record<MealType, React.ReactNode> = {
 export function CurrentMealStatus() {
   const { t } = useLanguage();
   const { settings } = useMealSettings();
+  const [now, setNow] = useState(() => new Date());
+
+  // Update status automatically (no refresh needed)
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   const systemSettings = { 
     mealWindows: settings.mealWindows, 
     lockDurationMinutes: settings.lockDurationMinutes, 
@@ -26,9 +34,8 @@ export function CurrentMealStatus() {
     scanningEnabled: settings.scanningEnabled ?? true
   };
   
-  const currentMeal = getCurrentMealType(new Date(), systemSettings);
-  const nextMeal = getNextMealWindow(new Date(), systemSettings);
-
+  const currentMeal = getCurrentMealType(now, systemSettings);
+  const nextMeal = getNextMealWindow(now, systemSettings);
   return (
     <Card variant="glass" className="overflow-hidden">
       <CardContent className="p-6">

@@ -103,6 +103,13 @@ export default function Scanner() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [recentScans, setRecentScans] = useState<MealLog[]>([]);
   const [manualBarcode, setManualBarcode] = useState("");
+  const [now, setNow] = useState(() => new Date());
+
+  // Re-evaluate active meal automatically (no refresh needed)
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const today = new Date();
   const dualDate = formatDualDate(today, language as "en" | "am");
@@ -115,14 +122,14 @@ export default function Scanner() {
     defaultLanguage: "en" as const,
     scanningEnabled: settings.scanningEnabled ?? true,
   };
-  const activeMeal = getCurrentMealType(new Date(), systemSettings);
+  const activeMeal = getCurrentMealType(now, systemSettings);
 
   const cafeteria = cafeteriaList.find(
     (c) => c.cafeteriaId === selectedCafeteria
   )!;
 
-  // Scanner only works during active meal windows
-  const canScan = activeMeal !== null;
+  // Scanner only works during active meal windows AND when admin hasn't paused scanning
+  const canScan = (settings.scanningEnabled ?? true) && activeMeal !== null;
 
   // Subscribe to real-time meal logs
   useEffect(() => {
