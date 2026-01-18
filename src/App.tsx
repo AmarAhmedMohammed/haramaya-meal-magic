@@ -15,6 +15,8 @@ import Settings from "./pages/Settings";
 import IDCards from "./pages/admin/IDCards";
 import ManageAdmins from "./pages/admin/ManageAdmins";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import ImportGraduated from "./pages/admin/ImportGraduated";
+import ImportRestricted from "./pages/admin/ImportRestricted";
 import RegistrarDashboard from "./pages/registrar/RegistrarDashboard";
 import CafeServiceDashboard from "./pages/cafe/CafeServiceDashboard";
 import NotFound from "./pages/NotFound";
@@ -49,7 +51,8 @@ const App = () => (
                   <Route path="/settings" element={<Settings />} />
                   <Route path="/admin/id-cards" element={<IDCards />} />
                   <Route path="/admin/manage" element={<ManageAdmins />} />
-                  <Route path="*" element={<NotFound />} />
+                  <Route path="/admin/graduated" element={<ImportGraduated />} />
+                  <Route path="/admin/restricted" element={<ImportRestricted />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </BrowserRouter>

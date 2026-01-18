@@ -10,6 +10,8 @@ import {
   X,
   Languages,
   Shield,
+  GraduationCap,
+  ShieldBan,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +49,18 @@ const adminNavItems: NavItem[] = [
     icon: <Shield className="w-5 h-5" />,
     label: "Manage Admins",
     href: "/admin/manage",
+    roles: ["super_admin"],
+  },
+  {
+    icon: <GraduationCap className="w-5 h-5" />,
+    label: "Graduated Students",
+    href: "/admin/graduated",
+    roles: ["super_admin"],
+  },
+  {
+    icon: <ShieldBan className="w-5 h-5" />,
+    label: "Restricted Students",
+    href: "/admin/restricted",
     roles: ["super_admin"],
   },
 ];
