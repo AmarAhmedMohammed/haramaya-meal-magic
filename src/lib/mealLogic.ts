@@ -53,8 +53,16 @@ export function getCurrentMealType(
       return currentMinutes >= start && currentMinutes < end;
     }
 
-    // Crosses midnight (e.g., 22:00 to 02:00) - but NOT when end is exactly midnight
-    // This handles cases like 22:00 to 02:00 (next day)
+    // Crosses midnight (e.g., 22:00 to 02:00)
+    // Guardrail: if the implied cross-midnight window is extremely long, it is
+    // almost always a misconfigured AM/PM selection (e.g., 17:00 -> 12:00).
+    // In that case, we treat it as "from start until midnight" only.
+    const crossMidnightDuration = 24 * 60 - start + end;
+    const MAX_CROSS_MIDNIGHT_MINUTES = 12 * 60;
+    if (crossMidnightDuration > MAX_CROSS_MIDNIGHT_MINUTES) {
+      return currentMinutes >= start;
+    }
+
     return currentMinutes >= start || currentMinutes < end;
   };
 
