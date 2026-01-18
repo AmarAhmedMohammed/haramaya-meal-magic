@@ -37,13 +37,16 @@ export default function ImportRestricted() {
   const { toast } = useToast();
 
   useEffect(() => {
+    console.log("ImportRestricted: Setting up students subscription");
     const unsubscribe = subscribeToStudents((allStudents) => {
+      console.log("ImportRestricted: Received students:", allStudents.length);
+      console.log("ImportRestricted: All student statuses:", allStudents.map(s => ({ id: s.studentId, status: s.status })));
       setStudents(allStudents);
-      setRestrictedStudents(
-        allStudents.filter(
-          (s) => s.status === "persecuted" || s.status === "suspended"
-        )
+      const filtered = allStudents.filter(
+        (s) => s.status === "persecuted" || s.status === "suspended"
       );
+      console.log("ImportRestricted: Restricted students:", filtered.length);
+      setRestrictedStudents(filtered);
     });
     return () => unsubscribe();
   }, []);
