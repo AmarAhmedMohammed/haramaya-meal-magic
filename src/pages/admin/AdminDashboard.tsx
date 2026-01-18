@@ -220,22 +220,14 @@ export default function AdminDashboard() {
   // Wait for auth init (prevents redirect flicker)
   if (authLoading) {
     return (
-      <Layout>
-        <div className="py-10 text-center text-muted-foreground">Loading...</div>
-      </Layout>
-    );
-  }
-
-  // Redirect if not admin (wait for auth loading)
-  if (authLoading) {
-    return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Activity className="w-10 h-10 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (authType !== "admin") {
+  // Redirect if not admin - check both admin object and authType
+  if (!admin && authType !== "admin") {
     return <Navigate to="/" replace />;
   }
 
