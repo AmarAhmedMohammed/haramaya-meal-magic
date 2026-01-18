@@ -39,17 +39,23 @@ export function getCurrentMealType(
 
   const isTimeInRange = (startStr: string, endStr: string) => {
     const start = toMinutes(startStr);
-    const end = toMinutes(endStr);
+    let end = toMinutes(endStr);
 
     if (Number.isNaN(start) || Number.isNaN(end)) return false;
 
-    // Normal same-day range
-    if (start <= end) {
-      return currentMinutes >= start && currentMinutes <= end;
+    // Handle end time of 00:00 (midnight) - treat as 24:00 (end of day)
+    if (end === 0) {
+      end = 24 * 60; // 1440 minutes = midnight as end of day
     }
 
-    // Crosses midnight (e.g., 22:00 to 02:00)
-    return currentMinutes >= start || currentMinutes <= end;
+    // Normal same-day range (including when end is midnight treated as 24:00)
+    if (start < end) {
+      return currentMinutes >= start && currentMinutes < end;
+    }
+
+    // Crosses midnight (e.g., 22:00 to 02:00) - but NOT when end is exactly midnight
+    // This handles cases like 22:00 to 02:00 (next day)
+    return currentMinutes >= start || currentMinutes < end;
   };
 
   if (isTimeInRange(windows.breakfast.start, windows.breakfast.end)) {
