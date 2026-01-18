@@ -299,25 +299,15 @@ export default function Students() {
           </div>
           <div className="flex items-center gap-3">
             {isAdmin && (
-              <>
-                <ImportExportButtons
-                  students={filteredStudents}
-                  onImportComplete={() => {
-                    toast({
-                      title: "Import Complete",
-                      description: "Students imported successfully.",
-                    });
-                  }}
-                />
-                <Button
-                  variant="hero"
-                  className="gap-2"
-                  onClick={openAddDialog}
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Student
-                </Button>
-              </>
+              <ImportExportButtons
+                students={filteredStudents}
+                onImportComplete={() => {
+                  toast({
+                    title: "Import Complete",
+                    description: "Students imported successfully.",
+                  });
+                }}
+              />
             )}
             {!isAdmin && (
               <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-muted-foreground text-sm">
