@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
 import {
@@ -8,6 +8,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { getCurrentMealType } from "@/lib/mealLogic";
+import { MealType } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,6 +143,31 @@ export default function AdminDashboard() {
   >([]);
 
   const isSuperAdmin = admin?.role === "super_admin";
+
+  // Live meal window check - updates every 10 seconds
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
+  }, []);
+
+  // Calculate current meal type with live time
+  const currentMealType = useMemo(() => {
+    const systemSettings = {
+      mealWindows: settings.mealWindows,
+      lockDurationMinutes: settings.lockDurationMinutes,
+      showEthiopianDate: false,
+      defaultLanguage: 'en' as const,
+      scanningEnabled: settings.scanningEnabled,
+    };
+    return getCurrentMealType(currentTime, systemSettings);
+  }, [currentTime, settings.mealWindows, settings.lockDurationMinutes, settings.scanningEnabled]);
+
+  // Scanning is active only if enabled AND within a meal window
+  const isScanningActive = settings.scanningEnabled && currentMealType !== null;
 
   useEffect(() => {
     const unsubStudents = subscribeToStudents(
@@ -464,8 +491,12 @@ export default function AdminDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant={settings.scanningEnabled ? "granted" : "denied"}>
-              {settings.scanningEnabled ? "Scanning Active" : "Scanning Paused"}
+            <Badge variant={isScanningActive ? "granted" : "denied"}>
+              {isScanningActive 
+                ? `Scanning Active (${currentMealType})` 
+                : settings.scanningEnabled 
+                  ? "Waiting for Meal Time" 
+                  : "Scanning Paused"}
             </Badge>
           </div>
         </div>
