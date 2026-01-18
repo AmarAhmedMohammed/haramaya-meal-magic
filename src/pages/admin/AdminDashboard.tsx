@@ -583,7 +583,7 @@ export default function AdminDashboard() {
             </TabsTrigger>
           </TabsList>
 
-          {/* Settings Tab */}
+          {/* Settings Tab - Read Only View */}
           <TabsContent value="settings" className="space-y-6">
             <Card variant="elevated">
               <CardHeader>
@@ -592,12 +592,11 @@ export default function AdminDashboard() {
                   Meal Time Settings
                 </CardTitle>
                 <CardDescription>
-                  Configure meal service windows. Scanning auto-starts/stops
-                  based on these times.
+                  Current meal service windows. Go to Settings page to edit.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Breakfast */}
+                {/* Breakfast - Read Only */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-amber-100 dark:bg-amber-800 rounded-lg">
@@ -606,32 +605,16 @@ export default function AdminDashboard() {
                     <span className="font-medium">Breakfast</span>
                   </div>
                   <div className="space-y-2">
-                    <Label>Start Time</Label>
-                    <Input
-                      type="time"
-                      value={settings.mealWindows.breakfast.start}
-                      onChange={(e) =>
-                        handleMealTimeChange(
-                          "breakfast",
-                          "start",
-                          e.target.value
-                        )
-                      }
-                    />
+                    <Label className="text-muted-foreground">Start Time</Label>
+                    <p className="font-medium">{settings.mealWindows.breakfast.start}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label>End Time</Label>
-                    <Input
-                      type="time"
-                      value={settings.mealWindows.breakfast.end}
-                      onChange={(e) =>
-                        handleMealTimeChange("breakfast", "end", e.target.value)
-                      }
-                    />
+                    <Label className="text-muted-foreground">End Time</Label>
+                    <p className="font-medium">{settings.mealWindows.breakfast.end}</p>
                   </div>
                 </div>
 
-                {/* Lunch */}
+                {/* Lunch - Read Only */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-orange-100 dark:bg-orange-800 rounded-lg">
@@ -640,28 +623,16 @@ export default function AdminDashboard() {
                     <span className="font-medium">Lunch</span>
                   </div>
                   <div className="space-y-2">
-                    <Label>Start Time</Label>
-                    <Input
-                      type="time"
-                      value={settings.mealWindows.lunch.start}
-                      onChange={(e) =>
-                        handleMealTimeChange("lunch", "start", e.target.value)
-                      }
-                    />
+                    <Label className="text-muted-foreground">Start Time</Label>
+                    <p className="font-medium">{settings.mealWindows.lunch.start}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label>End Time</Label>
-                    <Input
-                      type="time"
-                      value={settings.mealWindows.lunch.end}
-                      onChange={(e) =>
-                        handleMealTimeChange("lunch", "end", e.target.value)
-                      }
-                    />
+                    <Label className="text-muted-foreground">End Time</Label>
+                    <p className="font-medium">{settings.mealWindows.lunch.end}</p>
                   </div>
                 </div>
 
-                {/* Dinner */}
+                {/* Dinner - Read Only */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-indigo-100 dark:bg-indigo-800 rounded-lg">
@@ -670,75 +641,58 @@ export default function AdminDashboard() {
                     <span className="font-medium">Dinner</span>
                   </div>
                   <div className="space-y-2">
-                    <Label>Start Time</Label>
-                    <Input
-                      type="time"
-                      value={settings.mealWindows.dinner.start}
-                      onChange={(e) =>
-                        handleMealTimeChange("dinner", "start", e.target.value)
-                      }
-                    />
+                    <Label className="text-muted-foreground">Start Time</Label>
+                    <p className="font-medium">{settings.mealWindows.dinner.start}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label>End Time</Label>
-                    <Input
-                      type="time"
-                      value={settings.mealWindows.dinner.end}
-                      onChange={(e) =>
-                        handleMealTimeChange("dinner", "end", e.target.value)
-                      }
-                    />
+                    <Label className="text-muted-foreground">End Time</Label>
+                    <p className="font-medium">{settings.mealWindows.dinner.end}</p>
                   </div>
                 </div>
 
-                {/* Scanning Toggle */}
+                {/* Scanning Status - Read Only */}
                 <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
                   <div>
-                    <p className="font-medium">Manual Scanning Control</p>
+                    <p className="font-medium">Scanning Status</p>
                     <p className="text-sm text-muted-foreground">
-                      Override auto-start/stop to enable or disable scanning
-                      manually
+                      Current scanning state (edit in Settings page)
                     </p>
                   </div>
-                  <Switch
-                    checked={settings.scanningEnabled}
-                    onCheckedChange={(checked) => {
-                      updateScanningEnabled(checked);
-                      toast({
-                        title: checked
-                          ? "Scanning Enabled"
-                          : "Scanning Disabled",
-                        description: checked
-                          ? "Cafe service can now scan students."
-                          : "Scanning has been paused.",
-                      });
-                    }}
-                  />
+                  <Badge variant={settings.scanningEnabled ? "granted" : "denied"}>
+                    {settings.scanningEnabled ? "Enabled" : "Disabled"}
+                  </Badge>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link to="/settings">
+                    <Button variant="outline" className="gap-2">
+                      <Settings className="w-4 h-4" />
+                      Edit in Settings
+                    </Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Staff Tab */}
+          {/* Staff Tab - Read Only */}
           <TabsContent value="staff" className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-semibold">Staff Management</h2>
+                <h2 className="text-xl font-semibold">Staff Overview</h2>
                 <p className="text-muted-foreground">
-                  Manage registrar and cafe service staff
+                  View registrar and cafe service staff. Manage staff in Manage Admins page.
                 </p>
               </div>
-              <Button
-                variant="hero"
-                className="gap-2"
-                onClick={() => setIsAddStaffOpen(true)}
-              >
-                <UserPlus className="w-4 h-4" />
-                Add Staff
-              </Button>
+              <Link to="/admin/manage-admins">
+                <Button variant="outline" className="gap-2">
+                  <Settings className="w-4 h-4" />
+                  Manage Staff
+                </Button>
+              </Link>
             </div>
 
-            {/* Registrars */}
+            {/* Registrars - Read Only */}
             <Card variant="elevated">
               <CardHeader>
                 <CardTitle>Registrars ({registrars.length})</CardTitle>
@@ -755,14 +709,13 @@ export default function AdminDashboard() {
                       <TableHead>Staff ID</TableHead>
                       <TableHead>Phone</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {registrars.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={6}
+                          colSpan={5}
                           className="text-center py-6 text-muted-foreground"
                         >
                           No registrars found
@@ -786,26 +739,6 @@ export default function AdminDashboard() {
                               {s.isActive ? "Active" : "Inactive"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="space-x-1">
-                            <Button
-                              size="sm"
-                              variant={s.isActive ? "outline" : "default"}
-                              onClick={() => handleToggleStaffStatus(s)}
-                            >
-                              {s.isActive ? "Deactivate" : "Activate"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => {
-                                setSelectedStaff(s);
-                                setIsDeleteStaffOpen(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -814,7 +747,7 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            {/* Cafe Service Staff */}
+            {/* Cafe Service Staff - Read Only */}
             <Card variant="elevated">
               <CardHeader>
                 <CardTitle>Cafe Service ({cafeStaff.length})</CardTitle>
@@ -831,14 +764,13 @@ export default function AdminDashboard() {
                       <TableHead>Staff ID</TableHead>
                       <TableHead>Cafeteria</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {cafeStaff.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={6}
+                          colSpan={5}
                           className="text-center py-6 text-muted-foreground"
                         >
                           No cafe service staff found
@@ -870,26 +802,6 @@ export default function AdminDashboard() {
                               {s.isActive ? "Active" : "Inactive"}
                             </Badge>
                           </TableCell>
-                          <TableCell className="space-x-1">
-                            <Button
-                              size="sm"
-                              variant={s.isActive ? "outline" : "default"}
-                              onClick={() => handleToggleStaffStatus(s)}
-                            >
-                              {s.isActive ? "Deactivate" : "Activate"}
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() => {
-                                setSelectedStaff(s);
-                                setIsDeleteStaffOpen(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -899,39 +811,21 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          {/* Students Tab */}
+          {/* Students Tab - Read Only */}
           <TabsContent value="students" className="space-y-6">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-xl font-semibold">Student Management</h2>
+                <h2 className="text-xl font-semibold">Student Overview</h2>
                 <p className="text-muted-foreground">
-                  Set student statuses and import bulk changes
+                  View student statuses. Manage students in the Students page.
                 </p>
               </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => {
-                    setImportType("graduated");
-                    setIsImportDialogOpen(true);
-                  }}
-                >
-                  <GraduationCap className="w-4 h-4" />
-                  Import Graduated
+              <Link to="/students">
+                <Button variant="outline" className="gap-2">
+                  <Users className="w-4 h-4" />
+                  View All Students
                 </Button>
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => {
-                    setImportType("persecuted");
-                    setIsImportDialogOpen(true);
-                  }}
-                >
-                  <Ban className="w-4 h-4" />
-                  Import Persecuted
-                </Button>
-              </div>
+              </Link>
             </div>
 
             {/* Status Overview */}
@@ -970,7 +864,7 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
-            {/* Non-Cafe Students List */}
+            {/* Non-Cafe Students List - Read Only */}
             <Card variant="elevated">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -989,7 +883,6 @@ export default function AdminDashboard() {
                       <TableHead>ID</TableHead>
                       <TableHead>Department</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1024,19 +917,6 @@ export default function AdminDashboard() {
                               {student.status}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                setSelectedStudent(student);
-                                setStudentAction(student.status as any);
-                                setIsStatusDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
                         </TableRow>
                       ))}
                     {students.filter(
@@ -1044,7 +924,7 @@ export default function AdminDashboard() {
                     ).length === 0 && (
                       <TableRow>
                         <TableCell
-                          colSpan={5}
+                          colSpan={4}
                           className="text-center py-6 text-muted-foreground"
                         >
                           All students are active
