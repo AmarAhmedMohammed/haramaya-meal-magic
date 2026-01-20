@@ -197,10 +197,17 @@ export default function ManageAdmins() {
       });
     } catch (error: any) {
       console.error("Error creating admin:", error);
+      let errorMessage = "Failed to create admin. Please try again.";
+      
+      if (error.code === "auth/email-already-in-use") {
+        errorMessage = "This email is already registered. Use a different email address.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description:
-          error.message || "Failed to create admin. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -212,11 +219,16 @@ export default function ManageAdmins() {
     if (!selectedAdmin) return;
 
     try {
+      // Delete admin document from Firestore
       await deleteDoc(doc(db, "admins", selectedAdmin.uid));
+
+      // Note: Firebase Auth user cannot be deleted from client SDK
+      // The Auth user will remain but won't have access since the admin doc is gone
+      // For complete cleanup, a Cloud Function would be needed
 
       toast({
         title: "Admin Deleted",
-        description: `${selectedAdmin.displayName} has been removed.`,
+        description: `${selectedAdmin.displayName} has been removed from the system. Their login credentials have been revoked.`,
       });
 
       setIsDeleteDialogOpen(false);
@@ -618,9 +630,9 @@ export default function ManageAdmins() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Admin</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete {selectedAdmin?.displayName}?
-                This action cannot be undone.
+              <AlertDialogDescription className="space-y-2">
+                <p>Are you sure you want to delete {selectedAdmin?.displayName}?</p>
+                <p className="text-sm">This will revoke their access to the system. This action cannot be undone.</p>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -629,7 +641,7 @@ export default function ManageAdmins() {
                 onClick={handleDeleteAdmin}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Delete
+                Delete Admin
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
