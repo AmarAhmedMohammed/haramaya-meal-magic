@@ -766,13 +766,6 @@ export default function ManageAdmins() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="super_admin">Super Admin</SelectItem>
-                    <SelectItem value="registrar_admin">
-                      Registrar Admin
-                    </SelectItem>
-                    <SelectItem value="cafeteria_manager">
-                      Cafeteria Manager
-                    </SelectItem>
-                    <SelectItem value="cashier">Cashier</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -33,7 +33,7 @@ export default function ImportRestricted() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [manualStudentId, setManualStudentId] = useState("");
-  const [manualFullName, setManualFullName] = useState("");
+  // const [manualFullName, setManualFullName] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -119,7 +119,7 @@ export default function ImportRestricted() {
   };
 
   const handleManualAdd = async () => {
-    if (!manualStudentId.trim() || !manualFullName.trim()) {
+    if (!manualStudentId.trim()) {
       toast({
         title: "Error",
         description: "Please enter both Student ID and Full Name",
@@ -146,7 +146,7 @@ export default function ImportRestricted() {
       } else {
         await createStudent({
           studentId: manualStudentId.trim(),
-          fullName: manualFullName.trim(),
+          fullName: manualStudentId.trim(),
           fullNameAmharic: "",
           email: "",
           department: "",
@@ -160,12 +160,12 @@ export default function ImportRestricted() {
         });
         toast({
           title: "Student Added",
-          description: `${manualFullName} has been added as restricted.`,
+          description: `${manualStudentId} has been added as restricted.`,
         });
       }
 
       setManualStudentId("");
-      setManualFullName("");
+      // setManualFullName("");
       setIsDialogOpen(false);
     } catch (error) {
       console.error("Error adding student:", error);
@@ -240,7 +240,7 @@ export default function ImportRestricted() {
                       onChange={(e) => setManualStudentId(e.target.value)}
                     />
                   </div>
-                  <div className="space-y-2">
+                  {/* <div className="space-y-2">
                     <Label htmlFor="fullName">Full Name</Label>
                     <Input
                       id="fullName"
@@ -248,7 +248,7 @@ export default function ImportRestricted() {
                       value={manualFullName}
                       onChange={(e) => setManualFullName(e.target.value)}
                     />
-                  </div>
+                  </div> */}
                   <Button onClick={handleManualAdd} className="w-full" variant="destructive">
                     Add as Restricted
                   </Button>

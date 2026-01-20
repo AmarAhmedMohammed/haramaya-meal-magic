@@ -685,7 +685,7 @@ export default function AdminDashboard() {
                   View registrar and cafe service staff. Manage staff in Manage Admins page.
                 </p>
               </div>
-              <Link to="/admin/manage-admins">
+              <Link to="/admin/manage">
                 <Button variant="outline" className="gap-2">
                   <Settings className="w-4 h-4" />
                   Manage Staff

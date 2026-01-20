@@ -213,12 +213,12 @@ export default function ImportGraduated() {
 
           <div className="flex gap-2">
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
+              {/* <DialogTrigger asChild>
                 <Button variant="outline">
                   <Plus className="w-4 h-4 mr-2" />
                   Add Manually
                 </Button>
-              </DialogTrigger>
+              </DialogTrigger> */}
               <DialogContent>
                 <DialogHeader>
                   <DialogTitle>Add Graduated Student</DialogTitle>
