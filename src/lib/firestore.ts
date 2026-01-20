@@ -103,6 +103,7 @@ export async function getStudent(studentId: string): Promise<Student | null> {
         studentId: data.studentId || studentSnap.id,
         fullName: data.fullName || "",
         fullNameAmharic: data.fullNameAmharic,
+        email: data.email || "",
         department: data.department || "",
         year: data.year || 1,
         photoURL: data.photoURL,
@@ -112,6 +113,7 @@ export async function getStudent(studentId: string): Promise<Student | null> {
         monthlyQuota: data.monthlyQuota ?? null,
         usedQuota: data.usedQuota || 0,
         allowedCafeterias: data.allowedCafeterias,
+        status: data.status || "active",
         lastMeal: data.lastMeal
           ? {
               ...data.lastMeal,
@@ -142,6 +144,7 @@ export async function getAllStudents(): Promise<Student[]> {
         studentId: data.studentId || doc.id,
         fullName: data.fullName || "",
         fullNameAmharic: data.fullNameAmharic,
+        email: data.email || "",
         department: data.department || "",
         year: data.year || 1,
         photoURL: data.photoURL,
@@ -151,6 +154,7 @@ export async function getAllStudents(): Promise<Student[]> {
         monthlyQuota: data.monthlyQuota ?? null,
         usedQuota: data.usedQuota || 0,
         allowedCafeterias: data.allowedCafeterias,
+        status: data.status || "active",
         lastMeal: data.lastMeal
           ? {
               ...data.lastMeal,
@@ -180,6 +184,7 @@ export async function searchStudents(searchTerm: string): Promise<Student[]> {
         studentId: data.studentId || doc.id,
         fullName: data.fullName || "",
         fullNameAmharic: data.fullNameAmharic,
+        email: data.email || "",
         department: data.department || "",
         year: data.year || 1,
         photoURL: data.photoURL,
@@ -189,6 +194,7 @@ export async function searchStudents(searchTerm: string): Promise<Student[]> {
         monthlyQuota: data.monthlyQuota ?? null,
         usedQuota: data.usedQuota || 0,
         allowedCafeterias: data.allowedCafeterias,
+        status: data.status || "active",
         notes: data.notes,
         createdAt: data.createdAt?.toDate() || new Date(),
         updatedAt: data.updatedAt?.toDate() || new Date(),
@@ -419,6 +425,7 @@ export function subscribeToStudents(
           studentId: data.studentId || doc.id,
           fullName: data.fullName || "",
           fullNameAmharic: data.fullNameAmharic,
+          email: data.email || "",
           department: data.department || "",
           year: data.year || 1,
           photoURL: data.photoURL,
@@ -428,6 +435,7 @@ export function subscribeToStudents(
           monthlyQuota: data.monthlyQuota ?? null,
           usedQuota: data.usedQuota || 0,
           allowedCafeterias: data.allowedCafeterias,
+          status: data.status || "active",
           lastMeal: data.lastMeal
             ? {
                 ...data.lastMeal,
