@@ -197,15 +197,28 @@ export default function Login() {
                       <KeyRound className="w-4 h-4 text-muted-foreground" />
                       Staff ID
                     </Label>
-                    <Input
-                      id="staffId"
-                      type="text"
-                      placeholder="e.g., REG-XXXXX-XXXX"
-                      value={staffId}
-                      onChange={(e) => setStaffId(e.target.value.toUpperCase())}
-                      className="font-mono"
-                      required
-                    />
+                    {loginType === 'registrar' && (
+                      <Input
+                        id="staffId"
+                        type="text"
+                        placeholder="e.g., REG-XXXXX-XXXX"
+                        value={staffId}
+                        onChange={(e) => setStaffId(e.target.value.toUpperCase())}
+                        className="font-mono"
+                        required
+                      />
+                    )}
+                    {loginType === 'cafe' && (
+                      <Input
+                        id="staffId"
+                        type="text"
+                        placeholder="e.g., CAF-XXXXX-XXXX"
+                        value={staffId}
+                        onChange={(e) => setStaffId(e.target.value.toUpperCase())}
+                        className="font-mono"
+                        required
+                      />
+                    )}
                     <p className="text-xs text-muted-foreground">
                       Your unique Staff ID provided by the Admin
                     </p>
