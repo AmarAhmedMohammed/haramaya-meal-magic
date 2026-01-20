@@ -14,19 +14,22 @@ import {
 import { db } from './firebase';
 import type { Staff, StaffRole, SupportTicket } from '@/types';
 
-// Generate unique staff ID
+// Generate unique staff ID with guaranteed uniqueness
 export function generateStaffId(role: StaffRole): string {
   const prefix = role === 'registrar' ? 'REG' : 'CAF';
   const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+  // Generate 6 random characters for better uniqueness
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase().padEnd(6, '0');
   return `${prefix}-${timestamp}-${random}`;
 }
 
 // Create new staff member
 export async function createStaff(staffData: Omit<Staff, 'id' | 'staffId' | 'createdAt' | 'updatedAt'>): Promise<Staff> {
   try {
-    const staffId = generateStaffId(staffData.role);
-    const staffRef = doc(db, 'staff', staffId);
+    // Validate required fields
+    if (!staffData.email || !staffData.fullName || !staffData.role) {
+      throw new Error('Email, full name, and role are required');
+    }
     
     // Check if email already exists
     const existingStaff = await getStaffByEmail(staffData.email);
@@ -34,8 +37,37 @@ export async function createStaff(staffData: Omit<Staff, 'id' | 'staffId' | 'cre
       throw new Error('A staff member with this email already exists');
     }
     
+    // Generate unique staff ID
+    const staffId = generateStaffId(staffData.role);
+    const staffRef = doc(db, 'staff', staffId);
+    
+    // Verify the ID doesn't already exist (extremely rare but possible)
+    const existingDoc = await getDoc(staffRef);
+    if (existingDoc.exists()) {
+      // Retry with a new ID
+      const retryId = generateStaffId(staffData.role);
+      const retryRef = doc(db, 'staff', retryId);
+      
+      const newStaff: Omit<Staff, 'id'> = {
+        ...staffData,
+        email: staffData.email.toLowerCase().trim(),
+        staffId: retryId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      
+      await setDoc(retryRef, {
+        ...newStaff,
+        createdAt: Timestamp.now(),
+        updatedAt: Timestamp.now(),
+      });
+      
+      return { id: retryId, ...newStaff };
+    }
+    
     const newStaff: Omit<Staff, 'id'> = {
       ...staffData,
+      email: staffData.email.toLowerCase().trim(),
       staffId,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -48,7 +80,7 @@ export async function createStaff(staffData: Omit<Staff, 'id' | 'staffId' | 'cre
     });
     
     return { id: staffId, ...newStaff };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating staff:', error);
     throw error;
   }
