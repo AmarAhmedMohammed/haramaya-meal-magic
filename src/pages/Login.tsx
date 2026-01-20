@@ -237,37 +237,6 @@ export default function Login() {
             </CardContent>
           </Card>
 
-          {/* Other login options */}
-          <div className="mt-6 text-center">
-            <p className="text-sm text-muted-foreground mb-3">Other login options:</p>
-            <div className="flex justify-center gap-3">
-              {loginType !== 'admin' && (
-                <Link to="/login/admin">
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <UserCog className="w-3 h-3" />
-                    Admin
-                  </Button>
-                </Link>
-              )}
-              {loginType !== 'registrar' && (
-                <Link to="/login/registrar">
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <FileText className="w-3 h-3" />
-                    Registrar
-                  </Button>
-                </Link>
-              )}
-              {loginType !== 'cafe' && (
-                <Link to="/login/cafe">
-                  <Button variant="outline" size="sm" className="gap-1">
-                    <Utensils className="w-3 h-3" />
-                    Cafe Service
-                  </Button>
-                </Link>
-              )}
-            </div>
-          </div>
-
           <p className="text-center text-xs text-muted-foreground mt-6">
             © {new Date().getFullYear()} Haramaya University. All rights reserved.
           </p>
