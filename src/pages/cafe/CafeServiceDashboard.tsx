@@ -94,39 +94,41 @@ export default function CafeServiceDashboard() {
 
       const { mealWindows } = settings;
 
-      const toMinutes = (timeStr: string) => {
-        const [h, m] = timeStr.split(":").map(Number);
+      const toMinutes = (timeStr: string): number => {
+        if (!timeStr || typeof timeStr !== 'string') return -1;
+        const parts = timeStr.split(":");
+        if (parts.length !== 2) return -1;
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (Number.isNaN(h) || Number.isNaN(m)) return -1;
         return h * 60 + m;
       };
 
-      const isTimeInRange = (startStr: string, endStr: string) => {
+      const isTimeInRange = (startStr: string, endStr: string): boolean => {
         const start = toMinutes(startStr);
         const end = toMinutes(endStr);
-        if (Number.isNaN(start) || Number.isNaN(end)) return false;
+        if (start < 0 || end < 0) return false;
         
         if (start <= end) {
-          return currentMinutes >= start && currentMinutes <= end;
+          return currentMinutes >= start && currentMinutes < end;
         } else {
-          // Crosses midnight (e.g., 17:00 to 00:00)
-          return currentMinutes >= start || currentMinutes <= end;
+          // Crosses midnight (e.g., 22:00 to 02:00)
+          return currentMinutes >= start || currentMinutes < end;
         }
       };
 
-      if (
-        isTimeInRange(mealWindows.breakfast.start, mealWindows.breakfast.end)
-      ) {
-        setCurrentMeal("breakfast");
-      } else if (
-        isTimeInRange(mealWindows.lunch.start, mealWindows.lunch.end)
-      ) {
-        setCurrentMeal("lunch");
-      } else if (
-        isTimeInRange(mealWindows.dinner.start, mealWindows.dinner.end)
-      ) {
-        setCurrentMeal("dinner");
-      } else {
-        setCurrentMeal(null);
+      // Check each meal window in order
+      let detectedMeal: MealType | null = null;
+      
+      if (mealWindows?.breakfast && isTimeInRange(mealWindows.breakfast.start, mealWindows.breakfast.end)) {
+        detectedMeal = "breakfast";
+      } else if (mealWindows?.lunch && isTimeInRange(mealWindows.lunch.start, mealWindows.lunch.end)) {
+        detectedMeal = "lunch";
+      } else if (mealWindows?.dinner && isTimeInRange(mealWindows.dinner.start, mealWindows.dinner.end)) {
+        detectedMeal = "dinner";
       }
+
+      setCurrentMeal(detectedMeal);
     };
 
     // Check immediately and every 10 seconds for responsive updates
@@ -134,7 +136,9 @@ export default function CafeServiceDashboard() {
     const interval = setInterval(checkMealTime, 10000);
 
     return () => clearInterval(interval);
-  }, [settings]);
+  }, [settings.mealWindows.breakfast.start, settings.mealWindows.breakfast.end, 
+      settings.mealWindows.lunch.start, settings.mealWindows.lunch.end,
+      settings.mealWindows.dinner.start, settings.mealWindows.dinner.end]);
 
   // Focus input for barcode scanning
   useEffect(() => {
