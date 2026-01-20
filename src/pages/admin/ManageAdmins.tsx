@@ -54,8 +54,8 @@ import {
   deleteDoc,
   Timestamp,
 } from "firebase/firestore";
-import { createUserWithEmailAndPassword } from "firebase/auth";
-import { auth, db } from "@/lib/firebase";
+import { createUserWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
+import { auth, secondaryAuth, db } from "@/lib/firebase";
 import { Admin, UserRole } from "@/types";
 import {
   Shield,
@@ -157,12 +157,15 @@ export default function ManageAdmins() {
       const adminId = generateAdminId();
       const password = generatePassword();
 
-      // Create Firebase Auth user
+      // Create Firebase Auth user using secondary auth to avoid signing out current admin
       const userCredential = await createUserWithEmailAndPassword(
-        auth,
+        secondaryAuth,
         formData.email,
         password
       );
+      
+      // Sign out from secondary auth immediately
+      await firebaseSignOut(secondaryAuth);
 
       // Create admin document in Firestore
       await setDoc(doc(db, "admins", userCredential.user.uid), {

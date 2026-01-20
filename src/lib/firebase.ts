@@ -16,7 +16,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// Secondary app for creating users without affecting the current session
+const secondaryApp = initializeApp(firebaseConfig, "secondary");
+
 export const auth = getAuth(app);
+export const secondaryAuth = getAuth(secondaryApp);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
