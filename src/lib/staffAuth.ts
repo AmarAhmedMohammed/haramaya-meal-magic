@@ -121,6 +121,8 @@ export async function verifyStaffLogin(email: string, staffId: string): Promise<
     const staffIdNormalized = (staffId || "").trim().toUpperCase();
     const emailNormalized = (email || "").trim().toLowerCase();
 
+    console.log("Verifying staff login for:", { staffIdNormalized, emailNormalized });
+
     // Common confusion: Admin IDs (ADM-...) are NOT used for Staff login.
     if (staffIdNormalized.startsWith("ADM-")) {
       throw new Error(
@@ -129,9 +131,11 @@ export async function verifyStaffLogin(email: string, staffId: string): Promise<
     }
 
     // Staff documents are stored with the Staff ID as the Firestore document ID.
-    // Using getDoc avoids case-sensitive email queries.
+    // Force fresh read from server to ensure we get the latest data
     const staffDocRef = doc(db, "staff", staffIdNormalized);
     const staffSnap = await getDoc(staffDocRef);
+
+    console.log("Staff document exists:", staffSnap.exists());
 
     if (!staffSnap.exists()) {
       console.log("No staff found with staffId:", staffIdNormalized);
@@ -225,11 +229,32 @@ export async function updateStaff(staffId: string, updates: Partial<Staff>) {
   }
 }
 
-// Delete staff
+// Delete staff - uses staffId as document ID
 export async function deleteStaff(staffId: string) {
   try {
-    const staffRef = doc(db, 'staff', staffId);
+    // Normalize the staffId to match how it's stored (uppercase)
+    const normalizedId = staffId.trim().toUpperCase();
+    console.log("Deleting staff with ID:", normalizedId);
+    
+    const staffRef = doc(db, 'staff', normalizedId);
+    
+    // First verify the document exists
+    const staffSnap = await getDoc(staffRef);
+    if (!staffSnap.exists()) {
+      console.warn("Staff document not found for deletion:", normalizedId);
+      // Try with original ID in case it wasn't normalized
+      const originalRef = doc(db, 'staff', staffId);
+      const originalSnap = await getDoc(originalRef);
+      if (originalSnap.exists()) {
+        await deleteDoc(originalRef);
+        console.log("Staff deleted with original ID:", staffId);
+        return { success: true };
+      }
+      throw new Error("Staff member not found");
+    }
+    
     await deleteDoc(staffRef);
+    console.log("Staff deleted successfully:", normalizedId);
     return { success: true };
   } catch (error) {
     console.error('Error deleting staff:', error);
