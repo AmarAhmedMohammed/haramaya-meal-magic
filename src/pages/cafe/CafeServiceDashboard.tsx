@@ -109,12 +109,19 @@ export default function CafeServiceDashboard() {
         const end = toMinutes(endStr);
         if (start < 0 || end < 0) return false;
         
-        if (start <= end) {
-          return currentMinutes >= start && currentMinutes < end;
-        } else {
-          // Crosses midnight (e.g., 22:00 to 02:00)
+        // Invalid window: end is before start but NOT a midnight-crossing window
+        // Only consider midnight crossing if end is before 06:00 (early morning)
+        if (start > end) {
+          // If end time is after 06:00, it's an invalid configuration, not midnight crossing
+          if (end > 360) { // 06:00 = 360 minutes
+            return false; // Invalid window, never active
+          }
+          // True midnight crossing (e.g., 22:00 to 02:00)
           return currentMinutes >= start || currentMinutes < end;
         }
+        
+        // Normal window: start <= end
+        return currentMinutes >= start && currentMinutes < end;
       };
 
       // Check each meal window in order
