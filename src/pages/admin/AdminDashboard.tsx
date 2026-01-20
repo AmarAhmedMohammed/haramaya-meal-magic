@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout/Layout";
+import { formatTime12Hour } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -606,11 +607,11 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Start Time</Label>
-                    <p className="font-medium">{settings.mealWindows.breakfast.start}</p>
+                    <p className="font-medium">{formatTime12Hour(settings.mealWindows.breakfast.start)}</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">End Time</Label>
-                    <p className="font-medium">{settings.mealWindows.breakfast.end}</p>
+                    <p className="font-medium">{formatTime12Hour(settings.mealWindows.breakfast.end)}</p>
                   </div>
                 </div>
 
@@ -624,11 +625,11 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Start Time</Label>
-                    <p className="font-medium">{settings.mealWindows.lunch.start}</p>
+                    <p className="font-medium">{formatTime12Hour(settings.mealWindows.lunch.start)}</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">End Time</Label>
-                    <p className="font-medium">{settings.mealWindows.lunch.end}</p>
+                    <p className="font-medium">{formatTime12Hour(settings.mealWindows.lunch.end)}</p>
                   </div>
                 </div>
 
@@ -642,11 +643,11 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">Start Time</Label>
-                    <p className="font-medium">{settings.mealWindows.dinner.start}</p>
+                    <p className="font-medium">{formatTime12Hour(settings.mealWindows.dinner.start)}</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-muted-foreground">End Time</Label>
-                    <p className="font-medium">{settings.mealWindows.dinner.end}</p>
+                    <p className="font-medium">{formatTime12Hour(settings.mealWindows.dinner.end)}</p>
                   </div>
                 </div>
 

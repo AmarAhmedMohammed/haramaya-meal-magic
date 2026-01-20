@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMealSettings } from "@/contexts/MealSettingsContext";
+import { formatTime12Hour } from "@/lib/utils";
 import {
   getStudent,
   createMealLog,
@@ -724,12 +725,12 @@ export default function CafeServiceDashboard() {
                   Settings:
                 </span>
                 <span className="text-xs font-mono">
-                  B:{settings.mealWindows.breakfast.start}-
-                  {settings.mealWindows.breakfast.end} | L:
-                  {settings.mealWindows.lunch.start}-
-                  {settings.mealWindows.lunch.end} | D:
-                  {settings.mealWindows.dinner.start}-
-                  {settings.mealWindows.dinner.end}
+                  B:{formatTime12Hour(settings.mealWindows.breakfast.start)}-
+                  {formatTime12Hour(settings.mealWindows.breakfast.end)} | L:
+                  {formatTime12Hour(settings.mealWindows.lunch.start)}-
+                  {formatTime12Hour(settings.mealWindows.lunch.end)} | D:
+                  {formatTime12Hour(settings.mealWindows.dinner.start)}-
+                  {formatTime12Hour(settings.mealWindows.dinner.end)}
                 </span>
               </div>
             </div>
