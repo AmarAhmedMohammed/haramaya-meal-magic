@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Cafeteria Access Registered</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin:0; padding:0; background:#f4f6f9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif; line-height:1.6; color:#333; }
+    .container { max-width:520px; margin:30px auto; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.1); border:1px solid #e2e8f0; }
+    .header { background:linear-gradient(135deg,#11bf00, #0161ff); color:white; padding:40px 20px; text-align:center; }
+    .header h1 { margin:0; font-size:28px; font-weight:700; }
+    .header p { margin:12px 0 0; font-size:16px; opacity:0.95; }
+    .content { padding:40px 30px; text-align:center; }
+    .greeting { font-size:20px; margin-bottom:8px; }
+    .highlight { background:#dbeafe; color:#1e40af; padding:12px 24px; border-radius:8px; font-weight:600; display:inline-block; margin:20px 0; font-size:18px; }
+    .qr-container { margin:35px auto; padding:20px; background:#f8fafc; border-radius:16px; max-width:280px; box-shadow:0 4px 15px rgba(0,0,0,0.08); }
+    .qr-container img { width:240px !important; height:240px !important; border-radius:12px; border:8px solid white; box-shadow:0 4px 20px rgba(0,0,0,0.12); }
+    .instructions { font-size:16px; color:#555; margin:30px 0; }
+    .footer { background:#1e293b; color:#94a3b8; padding:25px; text-align:center; font-size:14px; }
+    .footer a { color:#60a5fa; text-decoration:none; }
+    hr { border:none; height:1px; background:#e2e8f0; margin:40px 0; }
+    @media (max-width:480px) {
+      .container { margin:15px; border-radius:12px; }
+      .header { padding:30px 15px; }
+      .header h1 { font-size:24px; }
+      .content { padding:30px 20px; }
+      .qr-container img { width:200px !important; height:200px !important; }
+    }
+  </style>
+</head>
+<body>
+  <div style="display:none;">{{to_email}}</div>
+  <div class="container">
+    <div class="header">
+      <h1>Cafeteria Access Registered</h1>
+      <p>Your meal service account is now active</p>
+    </div>
+    <div class="content">
+      <p class="greeting">Hello <strong>{{student_name}}</strong>,</p>
+      <p>Congratulations! You have been successfully registered for Haramaya University meal service.</p>
+      
+      <div class="highlight">
+        Student ID: {{student_id}}
+      </div>
+
+      <div class="qr-container">
+        <img src="{{qrCodeImage}}" alt="Meal Access QR Code" />
+      </div>
+
+      <p class="instructions">
+        <strong>Scan this QR code</strong> at the cafeteria entrance every time you come for meals.
+      </p>
+    </div>
+    <div class="footer">
+      <strong>Haramaya University</strong><br>
+      Student Affairs • Cafeteria Services<br>
+      <a href="https://www.haramaya.edu.et">www.haramaya.edu.et</a>
+    </div>
+  </div>
+</body>
+</html>

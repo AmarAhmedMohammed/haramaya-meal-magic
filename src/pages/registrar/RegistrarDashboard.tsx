@@ -73,6 +73,7 @@ import {
 } from "lucide-react";
 import { Navigate } from "react-router-dom";
 import huLogo from "@/assets/hu-logo.png";
+import QRCode from "qrcode";
 
 interface StudentFormData {
   studentId: string;
@@ -119,7 +120,9 @@ export default function RegistrarDashboard() {
   const { toast } = useToast();
 
   // Real-time staff status check
-  const { isActive: staffIsActive, loading: statusLoading } = useStaffStatus(staff?.staffId);
+  const { isActive: staffIsActive, loading: statusLoading } = useStaffStatus(
+    staff?.staffId,
+  );
 
   const {
     students,
@@ -186,7 +189,7 @@ export default function RegistrarDashboard() {
     (student) =>
       student.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       student.studentId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      student.department.toLowerCase().includes(searchQuery.toLowerCase())
+      student.department.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const startCamera = async () => {
@@ -252,7 +255,7 @@ export default function RegistrarDashboard() {
       0,
       0,
       canvas.width,
-      canvas.height
+      canvas.height,
     );
 
     // Get image data - Decreased quality to 0.7 for faster upload
@@ -354,7 +357,7 @@ export default function RegistrarDashboard() {
 
     // Validate unique ID
     const existingById = students.find(
-      (s) => s.studentId === formData.studentId
+      (s) => s.studentId === formData.studentId,
     );
     if (existingById) {
       toast({
@@ -365,33 +368,19 @@ export default function RegistrarDashboard() {
       return;
     }
 
-    console.log("Submission started...");
     setIsSubmitting(true);
 
     try {
-      // 0. Whole process timeout (60 seconds)
       const submissionTimeout = new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Global submission timeout reached")),
-          60000
-        )
+        setTimeout(() => reject(new Error("Submission timeout")), 60000),
       );
 
       const submitProcess = (async () => {
-        // 1. Sanitize the studentId for document ID
         const originalStudentId = formData.studentId.trim();
         const sanitizedDocId = originalStudentId.replace(/\//g, "-");
-        console.log(
-          `Registration for student ID: ${originalStudentId} (Sanitized: ${sanitizedDocId})`
-        );
 
-        // 2. Process photo (get base64)
-        console.log("Processing photo...");
         const photoURL = await processPhoto(sanitizedDocId);
-        console.log("Photo processed:", photoURL ? "Success (Base64)" : "None");
 
-        // 3. Create student using context
-        console.log("Calling contextAddStudent...");
         const success = await contextAddStudent({
           studentId: originalStudentId,
           fullName: formData.fullName,
@@ -407,7 +396,175 @@ export default function RegistrarDashboard() {
           status: "active",
         });
 
-        console.log("contextAddStudent result:", success);
+        if (success) {
+          // Generate QR code (just studentId for simplicity)
+          const qrBase64 = await new Promise<string>((resolve, reject) => {
+            QRCode.toDataURL(
+              originalStudentId,
+              {
+                width: 300,
+                margin: 1,
+                color: { dark: "#000000", light: "#ffffff" },
+                errorCorrectionLevel: "M",
+              },
+              (err, url) => {
+                if (err) reject(err);
+                else resolve(url);
+              },
+            );
+          });
+
+          // ────────────────────────────────────────────────
+          // EMAIL TEMPLATE - QR CODE EMBEDDED AS BASE64 DATA URL
+          // ────────────────────────────────────────────────
+          // Get current timestamp for unique content
+          const timestamp = new Date().toLocaleString("en-US", {
+            timeZone: "Africa/Addis_Ababa",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+
+          let html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cafeteria Access Registered - ${originalStudentId}</title>
+</head>
+<body style="margin:0; padding:0; background:#f4f6f9; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9; padding:30px 15px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:500px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,0.1);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg, #11bf00, #0161ff); color:white; padding:35px 20px; text-align:center;">
+              <h1 style="margin:0; font-size:26px; font-weight:700;">Cafeteria Access Registered</h1>
+              <p style="margin:10px 0 0; font-size:15px; opacity:0.95;">Your meal service account is now active</p>
+            </td>
+          </tr>
+          <!-- Content -->
+          <tr>
+            <td style="padding:35px 25px; text-align:center;">
+            <div>
+                <img src="https://files.catbox.moe/s2qh9i.png" alt="Haramaya University Logo" width="100" height="100" style="display:block; border-radius:6px; background:#fff; margin:0 auto;">
+              </div><br>
+              <p style="font-size:18px; margin:0 0 10px;">Hello <strong>{{student_name}}</strong>,</p>
+              <p style="font-size:14px; color:#555; margin:0 0 25px;">Congratulations! You have been successfully registered for Haramaya University meal service.</p>
+              
+              <!-- Student ID Box -->
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 25px auto;">
+                <tr>
+                  <td style="background:#dbeafe; color:#1e40af; padding:12px 28px; border-radius:8px; font-weight:600; font-size:17px;">
+                    Student ID: {{student_id}}
+                  </td>
+                </tr>
+              </table>
+              
+              <!-- QR Code -->
+              <table cellpadding="0" cellspacing="0" style="margin:0 auto 25px auto;">
+                <tr>
+                  <td style="background:#3a3a4a; padding:8px; border-radius:12px;">
+                    <img src="cid:qrcode.png" alt="QR Code" width="190" height="190" style="display:block; border-radius:6px; background:#fff;">
+                  </td>
+                </tr>
+              </table>
+              
+              <p style="font-size:15px; color:#444; margin:0 0 25px;">
+                <strong>Scan this QR code</strong> at the cafeteria entrance every time you come for meals.
+              </p>
+              
+              <!-- Divider -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin:25px 0;">
+                <tr><td style="height:1px; background:#e2e8f0;"></td></tr>
+              </table>
+              <br>
+              <br>
+              <br>
+              <br>
+              
+              
+              <!-- Footer Info -->
+              <p style="font-size:12px; color:#666; margin:0;">
+                <strong style="color:#333;">Haramaya University</strong><br>
+                Student Affairs &bull; Cafeteria Services<br>
+                <a href="https://www.haramaya.edu.et" style="color:#3b82f6; text-decoration:none;">www.haramaya.edu.et</a>
+              </p>
+              
+              <p style="font-size:10px; color:#999; margin:20px 0 0;">Registered on: ${timestamp}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+          `;
+
+          // Replace placeholders
+          html = html.replace(/{{student_name}}/g, formData.fullName);
+          html = html.replace(/{{student_id}}/g, originalStudentId);
+          html = html.replace(/{{to_email}}/g, formData.email);
+
+          // Send via Brevo with inline QR code attachment
+          const BREVO_API_KEY =
+            "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";
+
+          console.log("Sending email to:", formData.email);
+
+          const emailResponse = await fetch(
+            "https://api.brevo.com/v3/smtp/email",
+            {
+              method: "POST",
+              headers: {
+                accept: "application/json",
+                "api-key": BREVO_API_KEY,
+                "content-type": "application/json",
+              },
+              body: JSON.stringify({
+                sender: {
+                  name: "Haramaya University Cafeteria",
+                  email: "amarselmansudeys@gmail.com",
+                },
+                to: [{ email: formData.email, name: formData.fullName }],
+                subject: "Cafeteria Registration Successful – Your QR Code",
+                htmlContent: html,
+                attachment: [
+                  {
+                    content: qrBase64.split(",")[1],
+                    name: "qrcode.png",
+                    type: "image/png",
+                  },
+                ],
+                inlineImageActivation: true,
+                params: {
+                  qrCodeImage: qrBase64.split(",")[1],
+                },
+              }),
+            },
+          );
+
+          console.log("Email response status:", emailResponse.status);
+
+          if (!emailResponse.ok) {
+            const err = await emailResponse.json();
+            console.error("Brevo error:", err);
+            throw new Error(
+              `Brevo failed: ${err?.message || err?.code || emailResponse.status}`,
+            );
+          }
+
+          toast({
+            title: "Success",
+            description: `Student registered & QR code sent to ${formData.email}`,
+          });
+        }
+
         return success;
       })();
 
@@ -417,34 +574,28 @@ export default function RegistrarDashboard() {
       ])) as boolean;
 
       if (success) {
-        console.log("Registration successful, resetting form.");
-        // Reset form
         setFormData(emptyFormData);
         setCapturedImage(null);
         toast({
-          title: "Registration Success",
-          description: `${formData.fullName} has been registered successfully.`,
+          title: "Student Registered",
+          description: `${formData.fullName} is now registered for meal service.`,
         });
-      } else {
-        console.warn(
-          "contextAddStudent returned false (likely duplicate or validation failed in context)"
-        );
-        // The toast is likely already shown by the context
       }
     } catch (error: any) {
-      console.error("CRITICAL ERROR during registration:", error);
+      console.error("Registration failed:", error);
       toast({
-        title: "Registration Error",
-        description:
-          error.message ||
-          "Failed to register student. Please check the console or your internet connection.",
+        title: "Error",
+        description: error.message || "Failed to register student",
         variant: "destructive",
       });
     } finally {
-      console.log("Submission finished.");
       setIsSubmitting(false);
     }
   };
+
+  // ────────────────────────────────────────────────
+  // The rest of the component (edit, delete, support dialogs, UI, etc.) remains UNCHANGED
+  // ────────────────────────────────────────────────
 
   const handleEditStudent = async () => {
     if (!selectedStudent) return;
@@ -605,10 +756,10 @@ export default function RegistrarDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-accent" />
-                  Register New Student
+                  Register Student for Meal Service
                 </CardTitle>
                 <CardDescription>
-                  Fill in student details and capture their photo
+                  Enter student details, assign cafeteria, and capture photo
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -963,8 +1114,8 @@ export default function RegistrarDashboard() {
                               {student.cafeteriaType === "muslim"
                                 ? "Muslim"
                                 : student.cafeteriaType === "christian"
-                                ? "Christian"
-                                : "Freshman"}
+                                  ? "Christian"
+                                  : "Freshman"}
                             </Badge>
                           </TableCell>
                           <TableCell>
