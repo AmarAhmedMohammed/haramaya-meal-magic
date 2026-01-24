@@ -65,7 +65,9 @@ export default function CafeServiceDashboard() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentMeal, setCurrentMeal] = useState<MealType | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [scannerActive, setScannerActive] = useState(true);
+  
+  // Scanner should respect the global scanningEnabled setting from meal settings
+  const isScanningAllowed = settings.scanningEnabled;
 
   // Scanner refs
   const scannerRef = useRef<HTMLDivElement>(null);
@@ -580,12 +582,10 @@ export default function CafeServiceDashboard() {
           {scanResult.status === "idle" && !isProcessing && (
             <div>
               <InlineScanner
-                isActive={scannerActive}
+                isActive={isScanningAllowed}
                 onScan={(code) => {
                   processScan(code);
                 }}
-                onStop={() => setScannerActive(false)}
-                onStart={() => setScannerActive(true)}
               />
             </div>
           )}
