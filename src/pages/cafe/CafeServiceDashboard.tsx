@@ -571,7 +571,7 @@ export default function CafeServiceDashboard() {
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
                 <Button
                   onClick={() => processScan(searchQuery)}
-                  disabled={isProcessing || !searchQuery.trim() || !isScanningAllowed}
+                  disabled={isProcessing || !searchQuery.trim() || !isScanningAllowed || !currentMeal}
                   className="h-10"
                 >
                   Verify
@@ -584,8 +584,8 @@ export default function CafeServiceDashboard() {
           {scanResult.status === "idle" && !isProcessing && (
             <div>
               <InlineScanner
-                isActive={isScanningAllowed}
-                disabled={!isScanningAllowed}
+                isActive={isScanningAllowed && !!currentMeal}
+                disabled={!isScanningAllowed || !currentMeal}
                 onScan={(code) => {
                   processScan(code);
                 }}
@@ -744,9 +744,9 @@ export default function CafeServiceDashboard() {
         </div>
       </footer>
 
-      {/* Scanning Paused Overlay */}
+      {/* Scanning Paused/Closed Overlay */}
       <AnimatePresence>
-        {!isScanningAllowed && (
+        {(!isScanningAllowed || !currentMeal) && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -762,12 +762,18 @@ export default function CafeServiceDashboard() {
               <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
                 <Clock className="w-10 h-10 text-destructive" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-2">Scanning Paused</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                {!isScanningAllowed ? "Scanning Paused" : "Meal Time Closed"}
+              </h2>
               <p className="text-muted-foreground mb-4">
-                Meal scanning has been temporarily disabled by the administrator.
+                {!isScanningAllowed 
+                  ? "Meal scanning has been temporarily disabled by the administrator."
+                  : "No meal service is currently active. Please wait for the next meal window."}
               </p>
               <p className="text-sm text-muted-foreground/70">
-                The scanner will resume automatically when enabled.
+                {!isScanningAllowed 
+                  ? "The scanner will resume automatically when enabled."
+                  : "The scanner will activate when the next meal window opens."}
               </p>
             </motion.div>
           </motion.div>
