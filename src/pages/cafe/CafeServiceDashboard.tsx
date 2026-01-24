@@ -498,13 +498,15 @@ export default function CafeServiceDashboard() {
           <div className="flex items-center gap-3">
             {/* Current Meal Badge */}
             <Badge
-              variant={currentMeal ? "granted" : "denied"}
+              variant={isScanningAllowed && currentMeal ? "granted" : "denied"}
               className="gap-2 py-1.5 px-3"
             >
-              {getMealIcon()}
-              {currentMeal
-                ? currentMeal.charAt(0).toUpperCase() + currentMeal.slice(1)
-                : "Closed"}
+              {isScanningAllowed ? getMealIcon() : <Clock className="w-6 h-6" />}
+              {!isScanningAllowed 
+                ? "Paused" 
+                : currentMeal
+                  ? currentMeal.charAt(0).toUpperCase() + currentMeal.slice(1)
+                  : "Closed"}
             </Badge>
 
             {/* Sound Toggle */}
