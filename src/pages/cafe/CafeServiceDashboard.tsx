@@ -580,12 +580,11 @@ export default function CafeServiceDashboard() {
             </div>
           </Card>
 
-          {/* Inline Camera Scanner */}
-          {scanResult.status === "idle" && !isProcessing && (
+          {/* Inline Camera Scanner - Only render when meal is active and scanning is allowed */}
+          {scanResult.status === "idle" && !isProcessing && isScanningAllowed && currentMeal && (
             <div>
               <InlineScanner
-                isActive={isScanningAllowed && !!currentMeal}
-                disabled={!isScanningAllowed || !currentMeal}
+                isActive={true}
                 onScan={(code) => {
                   processScan(code);
                 }}
