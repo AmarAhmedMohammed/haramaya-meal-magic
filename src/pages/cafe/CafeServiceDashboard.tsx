@@ -79,6 +79,13 @@ export default function CafeServiceDashboard() {
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
   const errorAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // WebAudio engine (kept alive) so scan sounds work reliably even when scans
+  // are triggered by camera callbacks (not direct user gestures).
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const masterGainRef = useRef<GainNode | null>(null);
+  const audioUnlockedRef = useRef(false);
+  const audioWarnedRef = useRef(false);
+
   const staffCafeteria = staff?.cafeteriaType || "christian";
 
   // Subscribe to students for real-time updates
@@ -156,6 +163,71 @@ export default function CafeServiceDashboard() {
     inputRef.current?.focus();
   }, [scanResult]);
 
+  const initAudioEngine = useCallback(() => {
+    if (audioContextRef.current && masterGainRef.current) {
+      return { ctx: audioContextRef.current, masterGain: masterGainRef.current };
+    }
+
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new Ctx() as AudioContext;
+    const masterGain = ctx.createGain();
+    masterGain.gain.value = 0.6;
+    masterGain.connect(ctx.destination);
+
+    audioContextRef.current = ctx;
+    masterGainRef.current = masterGain;
+
+    return { ctx, masterGain };
+  }, []);
+
+  const unlockAudio = useCallback(async () => {
+    try {
+      const { ctx, masterGain } = initAudioEngine();
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+
+      // Prime the audio pipeline (helps some mobile browsers)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      gain.gain.value = 0.0001;
+      osc.connect(gain);
+      gain.connect(masterGain);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.01);
+
+      audioUnlockedRef.current = true;
+    } catch {
+      // If the browser blocks autoplay audio, we'll prompt the user on first failed play.
+    }
+  }, [initAudioEngine]);
+
+  // Unlock audio on the first user gesture so camera-triggered scan sounds always play.
+  useEffect(() => {
+    const onFirstGesture = () => {
+      void unlockAudio();
+    };
+
+    window.addEventListener("pointerdown", onFirstGesture, { once: true });
+    return () => window.removeEventListener("pointerdown", onFirstGesture);
+  }, [unlockAudio]);
+
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (!audioUnlockedRef.current) {
+        void unlockAudio();
+      }
+      setSearchQuery(e.target.value.toUpperCase());
+    },
+    [unlockAudio]
+  );
+
+  const handleSearchFocus = useCallback(() => {
+    if (!audioUnlockedRef.current) {
+      void unlockAudio();
+    }
+  }, [unlockAudio]);
+
   // Memoized scan handler to prevent InlineScanner re-renders on searchQuery changes
   // This must be defined before any early returns - uses ref to access latest processScan
   const handleScannerCode = useCallback((code: string) => {
@@ -182,100 +254,128 @@ export default function CafeServiceDashboard() {
 
     // Professional multi-tone sounds using Web Audio API
     try {
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-      
-      // Create master gain for overall volume
-      const masterGain = audioContext.createGain();
-      masterGain.connect(audioContext.destination);
-      masterGain.gain.value = 0.6; // Louder overall volume
+      const { ctx: audioContext, masterGain } = initAudioEngine();
 
-      if (type === "success") {
-        // Success: Pleasant ascending chord (C-E-G major chord arpeggio)
-        const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
-        const startTime = audioContext.currentTime;
-        
-        frequencies.forEach((freq, index) => {
-          const osc = audioContext.createOscillator();
-          const gain = audioContext.createGain();
-          
-          osc.connect(gain);
-          gain.connect(masterGain);
-          
-          osc.type = "sine";
-          osc.frequency.value = freq;
-          
-          // Stagger the notes for arpeggio effect
-          const noteStart = startTime + (index * 0.08);
-          const noteDuration = 0.25;
-          
-          gain.gain.setValueAtTime(0, noteStart);
-          gain.gain.linearRampToValueAtTime(0.4, noteStart + 0.02);
-          gain.gain.exponentialRampToValueAtTime(0.01, noteStart + noteDuration);
-          
-          osc.start(noteStart);
-          osc.stop(noteStart + noteDuration + 0.1);
-        });
-        
-        // Add a final bright confirmation tone
-        const confirmOsc = audioContext.createOscillator();
-        const confirmGain = audioContext.createGain();
-        confirmOsc.connect(confirmGain);
-        confirmGain.connect(masterGain);
-        confirmOsc.type = "sine";
-        confirmOsc.frequency.value = 1046.5; // C6 - high bright note
-        
-        const confirmStart = startTime + 0.28;
-        confirmGain.gain.setValueAtTime(0, confirmStart);
-        confirmGain.gain.linearRampToValueAtTime(0.35, confirmStart + 0.02);
-        confirmGain.gain.exponentialRampToValueAtTime(0.01, confirmStart + 0.2);
-        
-        confirmOsc.start(confirmStart);
-        confirmOsc.stop(confirmStart + 0.3);
-        
-        // Close context after sounds complete
-        setTimeout(() => audioContext.close(), 600);
-        
-      } else {
-        // Error: Two-tone descending warning sound
-        const startTime = audioContext.currentTime;
-        
-        // First tone - higher warning beep
-        const osc1 = audioContext.createOscillator();
-        const gain1 = audioContext.createGain();
-        osc1.connect(gain1);
-        gain1.connect(masterGain);
-        osc1.type = "triangle"; // Softer than square but clear
-        osc1.frequency.value = 440; // A4
-        
-        gain1.gain.setValueAtTime(0, startTime);
-        gain1.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
-        gain1.gain.setValueAtTime(0.5, startTime + 0.15);
-        gain1.gain.linearRampToValueAtTime(0, startTime + 0.18);
-        
-        osc1.start(startTime);
-        osc1.stop(startTime + 0.2);
-        
-        // Second tone - lower confirmation of error
-        const osc2 = audioContext.createOscillator();
-        const gain2 = audioContext.createGain();
-        osc2.connect(gain2);
-        gain2.connect(masterGain);
-        osc2.type = "triangle";
-        osc2.frequency.value = 330; // E4 - descending interval
-        
-        const tone2Start = startTime + 0.2;
-        gain2.gain.setValueAtTime(0, tone2Start);
-        gain2.gain.linearRampToValueAtTime(0.5, tone2Start + 0.02);
-        gain2.gain.setValueAtTime(0.5, tone2Start + 0.2);
-        gain2.gain.exponentialRampToValueAtTime(0.01, tone2Start + 0.35);
-        
-        osc2.start(tone2Start);
-        osc2.stop(tone2Start + 0.4);
-        
-        // Close context after sounds complete
-        setTimeout(() => audioContext.close(), 700);
+      const actuallyPlay = () => {
+        // If the context got closed for any reason, rebuild it.
+        if (audioContext.state === "closed") {
+          audioContextRef.current = null;
+          masterGainRef.current = null;
+          const rebuilt = initAudioEngine();
+          return rebuilt.ctx.state === "suspended"
+            ? rebuilt.ctx.resume().then(() => {
+                audioUnlockedRef.current = true;
+                // retry after resume
+                playSound(type);
+              })
+            : playSound(type);
+        }
+
+        if (type === "success") {
+          // Success: Pleasant ascending chord (C-E-G major chord arpeggio)
+          const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
+          const startTime = audioContext.currentTime;
+
+          frequencies.forEach((freq, index) => {
+            const osc = audioContext.createOscillator();
+            const gain = audioContext.createGain();
+
+            osc.connect(gain);
+            gain.connect(masterGain);
+
+            osc.type = "sine";
+            osc.frequency.value = freq;
+
+            // Stagger the notes for arpeggio effect
+            const noteStart = startTime + index * 0.08;
+            const noteDuration = 0.25;
+
+            gain.gain.setValueAtTime(0, noteStart);
+            gain.gain.linearRampToValueAtTime(0.4, noteStart + 0.02);
+            gain.gain.exponentialRampToValueAtTime(
+              0.01,
+              noteStart + noteDuration
+            );
+
+            osc.start(noteStart);
+            osc.stop(noteStart + noteDuration + 0.1);
+          });
+
+          // Final bright confirmation tone
+          const confirmOsc = audioContext.createOscillator();
+          const confirmGain = audioContext.createGain();
+          confirmOsc.connect(confirmGain);
+          confirmGain.connect(masterGain);
+          confirmOsc.type = "sine";
+          confirmOsc.frequency.value = 1046.5; // C6
+
+          const confirmStart = startTime + 0.28;
+          confirmGain.gain.setValueAtTime(0, confirmStart);
+          confirmGain.gain.linearRampToValueAtTime(0.35, confirmStart + 0.02);
+          confirmGain.gain.exponentialRampToValueAtTime(
+            0.01,
+            confirmStart + 0.2
+          );
+
+          confirmOsc.start(confirmStart);
+          confirmOsc.stop(confirmStart + 0.3);
+        } else {
+          // Error: Two-tone descending warning sound
+          const startTime = audioContext.currentTime;
+
+          const osc1 = audioContext.createOscillator();
+          const gain1 = audioContext.createGain();
+          osc1.connect(gain1);
+          gain1.connect(masterGain);
+          osc1.type = "triangle";
+          osc1.frequency.value = 440; // A4
+
+          gain1.gain.setValueAtTime(0, startTime);
+          gain1.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+          gain1.gain.setValueAtTime(0.5, startTime + 0.15);
+          gain1.gain.linearRampToValueAtTime(0, startTime + 0.18);
+
+          osc1.start(startTime);
+          osc1.stop(startTime + 0.2);
+
+          const osc2 = audioContext.createOscillator();
+          const gain2 = audioContext.createGain();
+          osc2.connect(gain2);
+          gain2.connect(masterGain);
+          osc2.type = "triangle";
+          osc2.frequency.value = 330; // E4
+
+          const tone2Start = startTime + 0.2;
+          gain2.gain.setValueAtTime(0, tone2Start);
+          gain2.gain.linearRampToValueAtTime(0.5, tone2Start + 0.02);
+          gain2.gain.setValueAtTime(0.5, tone2Start + 0.2);
+          gain2.gain.exponentialRampToValueAtTime(0.01, tone2Start + 0.35);
+
+          osc2.start(tone2Start);
+          osc2.stop(tone2Start + 0.4);
+        }
+      };
+
+      if (audioContext.state === "suspended") {
+        audioContext
+          .resume()
+          .then(() => {
+            audioUnlockedRef.current = true;
+            actuallyPlay();
+          })
+          .catch(() => {
+            if (!audioWarnedRef.current) {
+              audioWarnedRef.current = true;
+              toast({
+                title: "Sound is blocked",
+                description: "Tap the screen once to enable scan sounds.",
+              });
+            }
+          });
+        return;
       }
+
+      actuallyPlay();
     } catch (e) {
       console.warn("Audio playback failed:", e);
     }
@@ -594,7 +694,15 @@ export default function CafeServiceDashboard() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setSoundEnabled(!soundEnabled)}
+              onClick={() => {
+                setSoundEnabled((prev) => {
+                  const next = !prev;
+                  if (next) {
+                    void unlockAudio();
+                  }
+                  return next;
+                });
+              }}
               className="text-sidebar-foreground/70"
             >
               {soundEnabled ? (
@@ -642,7 +750,8 @@ export default function CafeServiceDashboard() {
                 type="text"
                 placeholder="Scan barcode or type student ID..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value.toUpperCase())}
+                onChange={handleSearchChange}
+                onFocus={handleSearchFocus}
                 onKeyDown={handleKeyDown}
                 className="pl-12 pr-36 h-14 text-lg font-mono"
                 autoFocus
