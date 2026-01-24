@@ -73,6 +73,7 @@ export default function CafeServiceDashboard() {
   const scannerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const autoResetTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const processScanRef = useRef<(code: string) => void>(() => {});
 
   // Audio refs
   const successAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -154,6 +155,14 @@ export default function CafeServiceDashboard() {
   useEffect(() => {
     inputRef.current?.focus();
   }, [scanResult]);
+
+  // Memoized scan handler to prevent InlineScanner re-renders on searchQuery changes
+  // This must be defined before any early returns - uses ref to access latest processScan
+  const handleScannerCode = useCallback((code: string) => {
+    if (code && code.trim()) {
+      processScanRef.current(code);
+    }
+  }, []);
 
   // Redirect if not cafe service (wait for auth loading)
   if (authLoading) {
@@ -480,6 +489,9 @@ export default function CafeServiceDashboard() {
     }
   };
 
+  // Keep the ref updated with the latest processScan function
+  processScanRef.current = processScan;
+
   const logMealAttempt = async (
     studentId: string,
     result: "granted" | "denied",
@@ -508,6 +520,7 @@ export default function CafeServiceDashboard() {
     setScanResult({ status: "idle", message: "" });
     inputRef.current?.focus();
   };
+
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -653,9 +666,7 @@ export default function CafeServiceDashboard() {
             <div>
               <InlineScanner
                 isActive={true}
-                onScan={(code) => {
-                  processScan(code);
-                }}
+                onScan={handleScannerCode}
               />
             </div>
           )}
