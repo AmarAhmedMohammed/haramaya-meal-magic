@@ -571,7 +571,7 @@ export default function CafeServiceDashboard() {
               <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-2">
                 <Button
                   onClick={() => processScan(searchQuery)}
-                  disabled={isProcessing || !searchQuery.trim()}
+                  disabled={isProcessing || !searchQuery.trim() || !isScanningAllowed}
                   className="h-10"
                 >
                   Verify
@@ -585,6 +585,7 @@ export default function CafeServiceDashboard() {
             <div>
               <InlineScanner
                 isActive={isScanningAllowed}
+                disabled={!isScanningAllowed}
                 onScan={(code) => {
                   processScan(code);
                 }}
@@ -742,6 +743,36 @@ export default function CafeServiceDashboard() {
           </div>
         </div>
       </footer>
+
+      {/* Scanning Paused Overlay */}
+      <AnimatePresence>
+        {!isScanningAllowed && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-card rounded-2xl shadow-2xl p-8 max-w-md mx-4 text-center border border-border"
+            >
+              <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Clock className="w-10 h-10 text-destructive" />
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Scanning Paused</h2>
+              <p className="text-muted-foreground mb-4">
+                Meal scanning has been temporarily disabled by the administrator.
+              </p>
+              <p className="text-sm text-muted-foreground/70">
+                The scanner will resume automatically when enabled.
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Inactive Staff Modal */}
       <InactiveStaffModal

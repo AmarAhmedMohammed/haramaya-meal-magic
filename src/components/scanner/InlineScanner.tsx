@@ -9,12 +9,13 @@ interface InlineScannerProps {
   isActive: boolean;
   onStop?: () => void;
   onStart?: () => void;
+  disabled?: boolean; // When true, prevents any scanning even if user clicks start
 }
 
 export const InlineScanner = React.forwardRef<
   HTMLDivElement,
   InlineScannerProps
->(function InlineScanner({ onScan, isActive, onStop, onStart }, ref) {
+>(function InlineScanner({ onScan, isActive, onStop, onStart, disabled = false }, ref) {
   const [error, setError] = useState<string>("");
   const [scanning, setScanning] = useState(false);
   const [initializing, setInitializing] = useState(false);
@@ -64,7 +65,7 @@ export const InlineScanner = React.forwardRef<
   }, []);
 
   const startScanner = useCallback(async () => {
-    if (!mountedRef.current) return;
+    if (!mountedRef.current || disabled) return;
     setInitializing(true);
     setError("");
 
@@ -110,18 +111,18 @@ export const InlineScanner = React.forwardRef<
         setError("Camera Unavailable: " + errorMessage);
       }
     }
-  }, [onScan, stopScanner]);
+  }, [onScan, stopScanner, disabled]);
 
-  // Auto-start the scanner when component mounts and is active
+  // Auto-start the scanner when component mounts and is active (and not disabled)
   useEffect(() => {
     mountedRef.current = true;
 
-    // Always attempt to start when isActive is true
-    if (isActive) {
+    // Always attempt to start when isActive is true AND not disabled
+    if (isActive && !disabled) {
       // Start scanner immediately
       startScanner();
     } else {
-      // Stop scanner when isActive becomes false
+      // Stop scanner when isActive becomes false or disabled
       stopScanner();
     }
 
@@ -140,7 +141,7 @@ export const InlineScanner = React.forwardRef<
         scannerRef.current = null;
       }
     };
-  }, [isActive, startScanner, stopScanner]);
+  }, [isActive, disabled, startScanner, stopScanner]);
 
   const handleRetry = () => {
     startScanner();
