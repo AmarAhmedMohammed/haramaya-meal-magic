@@ -14,6 +14,37 @@
     <link rel="icon" type="image/svg+xml" href="src/assets/hu-logo.png" />
   </head>
   <body>
+    <noscript>
+      <style>
+        body { margin: 0; padding: 0; overflow: hidden; }
+        .js-required {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: #1a1a2e;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 999999;
+          color: #fff;
+          font-family: system-ui, sans-serif;
+          text-align: center;
+          padding: 20px;
+        }
+        .js-required h1 { color: #ef4444; margin-bottom: 16px; font-size: 24px; }
+        .js-required p { color: #9ca3af; max-width: 400px; line-height: 1.6; }
+        .js-required .icon { font-size: 64px; margin-bottom: 20px; }
+      </style>
+      <div class="js-required">
+        <div class="icon">🚫</div>
+        <h1>JavaScript Required</h1>
+        <p>This application requires JavaScript to run. Please enable JavaScript in your browser settings or disable any extensions that block JavaScript, then refresh the page.</p>
+        <p style="margin-top: 20px; color: #ef4444; font-weight: bold;">Haramaya University Smart Meal System</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
