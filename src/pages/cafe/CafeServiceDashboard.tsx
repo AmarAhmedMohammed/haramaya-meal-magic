@@ -171,36 +171,104 @@ export default function CafeServiceDashboard() {
   const playSound = (type: "success" | "error") => {
     if (!soundEnabled) return;
 
-    // Use Web Audio API for simple tones
+    // Professional multi-tone sounds using Web Audio API
     try {
       const audioContext = new (window.AudioContext ||
         (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      
+      // Create master gain for overall volume
+      const masterGain = audioContext.createGain();
+      masterGain.connect(audioContext.destination);
+      masterGain.gain.value = 0.6; // Louder overall volume
 
       if (type === "success") {
-        oscillator.frequency.value = 800;
-        oscillator.type = "sine";
-        gainNode.gain.value = 0.3;
+        // Success: Pleasant ascending chord (C-E-G major chord arpeggio)
+        const frequencies = [523.25, 659.25, 783.99]; // C5, E5, G5
+        const startTime = audioContext.currentTime;
+        
+        frequencies.forEach((freq, index) => {
+          const osc = audioContext.createOscillator();
+          const gain = audioContext.createGain();
+          
+          osc.connect(gain);
+          gain.connect(masterGain);
+          
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          
+          // Stagger the notes for arpeggio effect
+          const noteStart = startTime + (index * 0.08);
+          const noteDuration = 0.25;
+          
+          gain.gain.setValueAtTime(0, noteStart);
+          gain.gain.linearRampToValueAtTime(0.4, noteStart + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.01, noteStart + noteDuration);
+          
+          osc.start(noteStart);
+          osc.stop(noteStart + noteDuration + 0.1);
+        });
+        
+        // Add a final bright confirmation tone
+        const confirmOsc = audioContext.createOscillator();
+        const confirmGain = audioContext.createGain();
+        confirmOsc.connect(confirmGain);
+        confirmGain.connect(masterGain);
+        confirmOsc.type = "sine";
+        confirmOsc.frequency.value = 1046.5; // C6 - high bright note
+        
+        const confirmStart = startTime + 0.28;
+        confirmGain.gain.setValueAtTime(0, confirmStart);
+        confirmGain.gain.linearRampToValueAtTime(0.35, confirmStart + 0.02);
+        confirmGain.gain.exponentialRampToValueAtTime(0.01, confirmStart + 0.2);
+        
+        confirmOsc.start(confirmStart);
+        confirmOsc.stop(confirmStart + 0.3);
+        
+        // Close context after sounds complete
+        setTimeout(() => audioContext.close(), 600);
+        
       } else {
-        oscillator.frequency.value = 300;
-        oscillator.type = "square";
-        gainNode.gain.value = 0.2;
+        // Error: Two-tone descending warning sound
+        const startTime = audioContext.currentTime;
+        
+        // First tone - higher warning beep
+        const osc1 = audioContext.createOscillator();
+        const gain1 = audioContext.createGain();
+        osc1.connect(gain1);
+        gain1.connect(masterGain);
+        osc1.type = "triangle"; // Softer than square but clear
+        osc1.frequency.value = 440; // A4
+        
+        gain1.gain.setValueAtTime(0, startTime);
+        gain1.gain.linearRampToValueAtTime(0.5, startTime + 0.02);
+        gain1.gain.setValueAtTime(0.5, startTime + 0.15);
+        gain1.gain.linearRampToValueAtTime(0, startTime + 0.18);
+        
+        osc1.start(startTime);
+        osc1.stop(startTime + 0.2);
+        
+        // Second tone - lower confirmation of error
+        const osc2 = audioContext.createOscillator();
+        const gain2 = audioContext.createGain();
+        osc2.connect(gain2);
+        gain2.connect(masterGain);
+        osc2.type = "triangle";
+        osc2.frequency.value = 330; // E4 - descending interval
+        
+        const tone2Start = startTime + 0.2;
+        gain2.gain.setValueAtTime(0, tone2Start);
+        gain2.gain.linearRampToValueAtTime(0.5, tone2Start + 0.02);
+        gain2.gain.setValueAtTime(0.5, tone2Start + 0.2);
+        gain2.gain.exponentialRampToValueAtTime(0.01, tone2Start + 0.35);
+        
+        osc2.start(tone2Start);
+        osc2.stop(tone2Start + 0.4);
+        
+        // Close context after sounds complete
+        setTimeout(() => audioContext.close(), 700);
       }
-
-      oscillator.start();
-      setTimeout(
-        () => {
-          oscillator.stop();
-          audioContext.close();
-        },
-        type === "success" ? 200 : 400
-      );
     } catch (e) {
-      // Audio not supported
+      console.warn("Audio playback failed:", e);
     }
   };
 
