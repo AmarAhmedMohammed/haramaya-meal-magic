@@ -25,6 +25,7 @@ export interface MealSettings {
   };
   lockDurationMinutes: number;
   scanningEnabled: boolean;
+  registrationEnabled: boolean;
 }
 
 interface MealSettingsContextType {
