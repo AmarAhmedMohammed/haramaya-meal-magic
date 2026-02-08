@@ -177,6 +177,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
         updateMealWindow,
         updateLockDuration,
         updateScanningEnabled,
+        updateRegistrationEnabled,
         updateAllSettings,
         resetToDefaults,
         loading,
