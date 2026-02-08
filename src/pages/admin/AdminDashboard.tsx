@@ -105,7 +105,7 @@ const emptyStaffForm: StaffFormData = {
 export default function AdminDashboard() {
   const { admin, authType, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const { settings, updateMealWindow, updateScanningEnabled } =
+  const { settings, updateMealWindow, updateScanningEnabled, updateRegistrationEnabled } =
     useMealSettings();
 
   const [students, setStudents] = useState<Student[]>([]);
