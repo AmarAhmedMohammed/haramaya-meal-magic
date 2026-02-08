@@ -33,6 +33,7 @@ interface MealSettingsContextType {
   updateMealWindow: (meal: MealType, window: MealWindow) => void;
   updateLockDuration: (minutes: number) => void;
   updateScanningEnabled: (enabled: boolean) => void;
+  updateRegistrationEnabled: (enabled: boolean) => void;
   updateAllSettings: (newSettings: MealSettings) => Promise<void>;
   resetToDefaults: () => void;
   loading: boolean;
