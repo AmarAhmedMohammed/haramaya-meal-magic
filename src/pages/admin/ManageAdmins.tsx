@@ -70,7 +70,9 @@ import {
   Key,
   Users,
   Coffee,
+  Edit,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
