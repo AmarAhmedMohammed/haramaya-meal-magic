@@ -47,6 +47,7 @@ const DEFAULT_SETTINGS: MealSettings = {
   },
   lockDurationMinutes: 180,
   scanningEnabled: true,
+  registrationEnabled: true,
 };
 
 const MealSettingsContext = createContext<MealSettingsContextType | undefined>(
