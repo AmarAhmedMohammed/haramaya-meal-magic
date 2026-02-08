@@ -372,6 +372,51 @@ export default function ManageAdmins() {
     }
   };
 
+  const openEditStaffDialog = (staffMember: Staff) => {
+    setSelectedStaff(staffMember);
+    setEditStaffForm({
+      email: staffMember.email,
+      fullName: staffMember.fullName,
+      phoneNumber: staffMember.phoneNumber,
+      role: staffMember.role,
+      cafeteriaType: staffMember.cafeteriaType || "christian",
+      isActive: staffMember.isActive,
+    });
+    setIsEditStaffDialogOpen(true);
+  };
+
+  const handleEditStaff = async () => {
+    if (!selectedStaff) return;
+
+    setIsSubmitting(true);
+    try {
+      await updateStaff(selectedStaff.staffId, {
+        fullName: editStaffForm.fullName,
+        email: editStaffForm.email.toLowerCase(),
+        phoneNumber: editStaffForm.phoneNumber,
+        isActive: editStaffForm.isActive,
+        ...(selectedStaff.role === "cafe_service"
+          ? { cafeteriaType: editStaffForm.cafeteriaType }
+          : {}),
+      });
+
+      toast({
+        title: "Staff Updated",
+        description: `${editStaffForm.fullName} has been updated successfully.`,
+      });
+      setIsEditStaffDialogOpen(false);
+      setSelectedStaff(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update staff.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const registrars = staffList.filter((s) => s.role === "registrar");
   const cafeStaff = staffList.filter((s) => s.role === "cafe_service");
 
