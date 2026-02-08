@@ -105,7 +105,7 @@ const emptyStaffForm: StaffFormData = {
 export default function AdminDashboard() {
   const { admin, authType, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  const { settings, updateMealWindow, updateScanningEnabled } =
+  const { settings, updateMealWindow, updateScanningEnabled, updateRegistrationEnabled } =
     useMealSettings();
 
   const [students, setStudents] = useState<Student[]>([]);
@@ -662,6 +662,22 @@ export default function AdminDashboard() {
                   <Badge variant={settings.scanningEnabled ? "granted" : "denied"}>
                     {settings.scanningEnabled ? "Enabled" : "Disabled"}
                   </Badge>
+                </div>
+
+                {/* Registration Toggle */}
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">Student Registration</p>
+                    <p className="text-sm text-muted-foreground">
+                      {settings.registrationEnabled
+                        ? "Registrar can register new students"
+                        : "Registration is currently closed"}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.registrationEnabled}
+                    onCheckedChange={(checked) => updateRegistrationEnabled(checked)}
+                  />
                 </div>
 
                 <div className="flex justify-end">

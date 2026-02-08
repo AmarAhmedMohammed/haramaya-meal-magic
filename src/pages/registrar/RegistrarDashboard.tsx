@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMealSettings } from "@/contexts/MealSettingsContext";
 import { subscribeToStudents, getAllStudents } from "@/lib/firestore";
 import { useStudents } from "@/contexts/StudentsContext";
 import { createSupportTicket } from "@/lib/staffAuth";
@@ -117,6 +118,7 @@ const departments = [
 
 export default function RegistrarDashboard() {
   const { staff, signOut, authType, loading: authLoading } = useAuth();
+  const { settings } = useMealSettings();
   const { toast } = useToast();
 
   // Real-time staff status check
@@ -738,12 +740,14 @@ export default function RegistrarDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        <Tabs defaultValue="register" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="register" className="gap-2">
-              <UserPlus className="w-4 h-4" />
-              Register Student
-            </TabsTrigger>
+        <Tabs defaultValue={settings.registrationEnabled ? "register" : "manage"} className="space-y-6">
+          <TabsList className={`grid w-full ${settings.registrationEnabled ? "grid-cols-2" : "grid-cols-1"}`}>
+            {settings.registrationEnabled && (
+              <TabsTrigger value="register" className="gap-2">
+                <UserPlus className="w-4 h-4" />
+                Register Student
+              </TabsTrigger>
+            )}
             <TabsTrigger value="manage" className="gap-2">
               <Users className="w-4 h-4" />
               Manage Students
@@ -751,6 +755,7 @@ export default function RegistrarDashboard() {
           </TabsList>
 
           {/* Register Tab */}
+          {settings.registrationEnabled && (
           <TabsContent value="register">
             <Card variant="elevated">
               <CardHeader>
@@ -1029,6 +1034,7 @@ export default function RegistrarDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           {/* Manage Tab */}
           <TabsContent value="manage" className="space-y-4">

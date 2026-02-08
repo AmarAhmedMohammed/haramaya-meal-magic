@@ -58,7 +58,7 @@ import {
 import { createUserWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
 import { auth, secondaryAuth, db } from "@/lib/firebase";
 import { Admin, UserRole, Staff, StaffRole, CafeteriaType } from "@/types";
-import { subscribeToStaff, deleteStaff, createStaff } from "@/lib/staffAuth";
+import { subscribeToStaff, deleteStaff, createStaff, updateStaff } from "@/lib/staffAuth";
 import {
   Shield,
   Plus,
@@ -70,7 +70,9 @@ import {
   Key,
   Users,
   Coffee,
+  Edit,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -130,6 +132,7 @@ export default function ManageAdmins() {
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAddStaffDialogOpen, setIsAddStaffDialogOpen] = useState(false);
+  const [isEditStaffDialogOpen, setIsEditStaffDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleteStaffDialogOpen, setIsDeleteStaffDialogOpen] = useState(false);
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
@@ -138,6 +141,10 @@ export default function ManageAdmins() {
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [formData, setFormData] = useState<AdminFormData>(emptyFormData);
   const [staffForm, setStaffForm] = useState<StaffFormData>(emptyStaffForm);
+  const [editStaffForm, setEditStaffForm] = useState<StaffFormData & { isActive: boolean }>({
+    ...emptyStaffForm,
+    isActive: true,
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newCredentials, setNewCredentials] = useState<{
     adminId: string;
@@ -362,6 +369,51 @@ export default function ManageAdmins() {
         description: error.message || "Failed to delete staff.",
         variant: "destructive",
       });
+    }
+  };
+
+  const openEditStaffDialog = (staffMember: Staff) => {
+    setSelectedStaff(staffMember);
+    setEditStaffForm({
+      email: staffMember.email,
+      fullName: staffMember.fullName,
+      phoneNumber: staffMember.phoneNumber,
+      role: staffMember.role,
+      cafeteriaType: staffMember.cafeteriaType || "christian",
+      isActive: staffMember.isActive,
+    });
+    setIsEditStaffDialogOpen(true);
+  };
+
+  const handleEditStaff = async () => {
+    if (!selectedStaff) return;
+
+    setIsSubmitting(true);
+    try {
+      await updateStaff(selectedStaff.staffId, {
+        fullName: editStaffForm.fullName,
+        email: editStaffForm.email.toLowerCase(),
+        phoneNumber: editStaffForm.phoneNumber,
+        isActive: editStaffForm.isActive,
+        ...(selectedStaff.role === "cafe_service"
+          ? { cafeteriaType: editStaffForm.cafeteriaType }
+          : {}),
+      });
+
+      toast({
+        title: "Staff Updated",
+        description: `${editStaffForm.fullName} has been updated successfully.`,
+      });
+      setIsEditStaffDialogOpen(false);
+      setSelectedStaff(null);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update staff.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -617,17 +669,26 @@ export default function ManageAdmins() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => {
-                                setSelectedStaff(s);
-                                setIsDeleteStaffDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openEditStaffDialog(s)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => {
+                                  setSelectedStaff(s);
+                                  setIsDeleteStaffDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -697,17 +758,26 @@ export default function ManageAdmins() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => {
-                                setSelectedStaff(s);
-                                setIsDeleteStaffDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openEditStaffDialog(s)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => {
+                                  setSelectedStaff(s);
+                                  setIsDeleteStaffDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
@@ -1035,6 +1105,76 @@ export default function ManageAdmins() {
               </div>
             )}
             <DialogFooter><Button onClick={() => { setIsStaffCredentialsDialogOpen(false); setNewStaffCredentials(null); }}>Done</Button></DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Staff Dialog */}
+        <Dialog open={isEditStaffDialogOpen} onOpenChange={setIsEditStaffDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Staff Member</DialogTitle>
+              <DialogDescription>
+                Update {selectedStaff?.fullName}'s information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Full Name *</Label>
+                <Input
+                  value={editStaffForm.fullName}
+                  onChange={(e) => setEditStaffForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  value={editStaffForm.email}
+                  onChange={(e) => setEditStaffForm((prev) => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone Number *</Label>
+                <Input
+                  value={editStaffForm.phoneNumber}
+                  onChange={(e) => setEditStaffForm((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                />
+              </div>
+              {selectedStaff?.role === "cafe_service" && (
+                <div className="space-y-2">
+                  <Label>Cafeteria *</Label>
+                  <Select
+                    value={editStaffForm.cafeteriaType}
+                    onValueChange={(v: CafeteriaType) => setEditStaffForm((prev) => ({ ...prev, cafeteriaType: v }))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="muslim">Muslim Cafe</SelectItem>
+                      <SelectItem value="christian">Christian Cafe</SelectItem>
+                      <SelectItem value="fresh">Freshman Cafe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div>
+                  <Label>Active Status</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {editStaffForm.isActive ? "Staff can login and access their dashboard" : "Staff is blocked from accessing the system"}
+                  </p>
+                </div>
+                <Switch
+                  checked={editStaffForm.isActive}
+                  onCheckedChange={(checked) => setEditStaffForm((prev) => ({ ...prev, isActive: checked }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditStaffDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditStaff} disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

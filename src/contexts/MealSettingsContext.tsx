@@ -25,6 +25,7 @@ export interface MealSettings {
   };
   lockDurationMinutes: number;
   scanningEnabled: boolean;
+  registrationEnabled: boolean;
 }
 
 interface MealSettingsContextType {
@@ -32,6 +33,7 @@ interface MealSettingsContextType {
   updateMealWindow: (meal: MealType, window: MealWindow) => void;
   updateLockDuration: (minutes: number) => void;
   updateScanningEnabled: (enabled: boolean) => void;
+  updateRegistrationEnabled: (enabled: boolean) => void;
   updateAllSettings: (newSettings: MealSettings) => Promise<void>;
   resetToDefaults: () => void;
   loading: boolean;
@@ -45,6 +47,7 @@ const DEFAULT_SETTINGS: MealSettings = {
   },
   lockDurationMinutes: 180,
   scanningEnabled: true,
+  registrationEnabled: true,
 };
 
 const MealSettingsContext = createContext<MealSettingsContextType | undefined>(
@@ -65,6 +68,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
             mealWindows: firestoreSettings.mealWindows,
             lockDurationMinutes: firestoreSettings.lockDurationMinutes,
             scanningEnabled: firestoreSettings.scanningEnabled ?? true,
+            registrationEnabled: (firestoreSettings as any).registrationEnabled ?? true,
           });
         } else {
           // Initialize Firestore with default settings if none exist
@@ -86,6 +90,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
           mealWindows: updatedSettings.mealWindows,
           lockDurationMinutes: updatedSettings.lockDurationMinutes,
           scanningEnabled: updatedSettings.scanningEnabled ?? true,
+          registrationEnabled: (updatedSettings as any).registrationEnabled ?? true,
         });
       }
     });
@@ -135,6 +140,16 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const updateRegistrationEnabled = async (enabled: boolean) => {
+    setSettings((prev) => {
+      const newSettings = { ...prev, registrationEnabled: enabled };
+      updateFirestoreSettings(newSettings).catch((err) =>
+        console.error("Error updating registration enabled:", err)
+      );
+      return newSettings;
+    });
+  };
+
   const updateAllSettings = async (newSettings: MealSettings) => {
     setSettings(newSettings);
     try {
@@ -162,6 +177,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
         updateMealWindow,
         updateLockDuration,
         updateScanningEnabled,
+        updateRegistrationEnabled,
         updateAllSettings,
         resetToDefaults,
         loading,
