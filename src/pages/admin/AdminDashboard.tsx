@@ -664,6 +664,22 @@ export default function AdminDashboard() {
                   </Badge>
                 </div>
 
+                {/* Registration Toggle */}
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                  <div>
+                    <p className="font-medium">Student Registration</p>
+                    <p className="text-sm text-muted-foreground">
+                      {settings.registrationEnabled
+                        ? "Registrar can register new students"
+                        : "Registration is currently closed"}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.registrationEnabled}
+                    onCheckedChange={(checked) => updateRegistrationEnabled(checked)}
+                  />
+                </div>
+
                 <div className="flex justify-end">
                   <Link to="/settings">
                     <Button variant="outline" className="gap-2">
