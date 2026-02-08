@@ -1034,6 +1034,7 @@ export default function RegistrarDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+          )}
 
           {/* Manage Tab */}
           <TabsContent value="manage" className="space-y-4">
