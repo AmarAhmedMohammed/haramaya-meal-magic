@@ -1108,6 +1108,76 @@ export default function ManageAdmins() {
           </DialogContent>
         </Dialog>
 
+        {/* Edit Staff Dialog */}
+        <Dialog open={isEditStaffDialogOpen} onOpenChange={setIsEditStaffDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Staff Member</DialogTitle>
+              <DialogDescription>
+                Update {selectedStaff?.fullName}'s information.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Full Name *</Label>
+                <Input
+                  value={editStaffForm.fullName}
+                  onChange={(e) => setEditStaffForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email *</Label>
+                <Input
+                  type="email"
+                  value={editStaffForm.email}
+                  onChange={(e) => setEditStaffForm((prev) => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone Number *</Label>
+                <Input
+                  value={editStaffForm.phoneNumber}
+                  onChange={(e) => setEditStaffForm((prev) => ({ ...prev, phoneNumber: e.target.value }))}
+                />
+              </div>
+              {selectedStaff?.role === "cafe_service" && (
+                <div className="space-y-2">
+                  <Label>Cafeteria *</Label>
+                  <Select
+                    value={editStaffForm.cafeteriaType}
+                    onValueChange={(v: CafeteriaType) => setEditStaffForm((prev) => ({ ...prev, cafeteriaType: v }))}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="muslim">Muslim Cafe</SelectItem>
+                      <SelectItem value="christian">Christian Cafe</SelectItem>
+                      <SelectItem value="fresh">Freshman Cafe</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                <div>
+                  <Label>Active Status</Label>
+                  <p className="text-xs text-muted-foreground">
+                    {editStaffForm.isActive ? "Staff can login and access their dashboard" : "Staff is blocked from accessing the system"}
+                  </p>
+                </div>
+                <Switch
+                  checked={editStaffForm.isActive}
+                  onCheckedChange={(checked) => setEditStaffForm((prev) => ({ ...prev, isActive: checked }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsEditStaffDialogOpen(false)}>Cancel</Button>
+              <Button onClick={handleEditStaff} disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save Changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         {/* Delete Staff Dialog */}
         <AlertDialog open={isDeleteStaffDialogOpen} onOpenChange={setIsDeleteStaffDialogOpen}>
           <AlertDialogContent>
