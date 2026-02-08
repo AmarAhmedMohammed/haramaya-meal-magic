@@ -140,6 +140,16 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const updateRegistrationEnabled = async (enabled: boolean) => {
+    setSettings((prev) => {
+      const newSettings = { ...prev, registrationEnabled: enabled };
+      updateFirestoreSettings(newSettings).catch((err) =>
+        console.error("Error updating registration enabled:", err)
+      );
+      return newSettings;
+    });
+  };
+
   const updateAllSettings = async (newSettings: MealSettings) => {
     setSettings(newSettings);
     try {
