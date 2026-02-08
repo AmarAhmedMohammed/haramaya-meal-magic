@@ -118,6 +118,7 @@ const departments = [
 
 export default function RegistrarDashboard() {
   const { staff, signOut, authType, loading: authLoading } = useAuth();
+  const { settings } = useMealSettings();
   const { toast } = useToast();
 
   // Real-time staff status check
