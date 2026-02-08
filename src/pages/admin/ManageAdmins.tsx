@@ -58,7 +58,7 @@ import {
 import { createUserWithEmailAndPassword, signOut as firebaseSignOut } from "firebase/auth";
 import { auth, secondaryAuth, db } from "@/lib/firebase";
 import { Admin, UserRole, Staff, StaffRole, CafeteriaType } from "@/types";
-import { subscribeToStaff, deleteStaff, createStaff } from "@/lib/staffAuth";
+import { subscribeToStaff, deleteStaff, createStaff, updateStaff } from "@/lib/staffAuth";
 import {
   Shield,
   Plus,
