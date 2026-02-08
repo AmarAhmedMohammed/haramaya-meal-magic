@@ -48,6 +48,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useMealSettings } from "@/contexts/MealSettingsContext";
 import { subscribeToStudents, getAllStudents } from "@/lib/firestore";
 import { useStudents } from "@/contexts/StudentsContext";
 import { createSupportTicket } from "@/lib/staffAuth";
