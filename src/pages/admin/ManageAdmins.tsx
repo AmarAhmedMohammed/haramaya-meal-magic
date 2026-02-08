@@ -132,6 +132,7 @@ export default function ManageAdmins() {
   const [loading, setLoading] = useState(true);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isAddStaffDialogOpen, setIsAddStaffDialogOpen] = useState(false);
+  const [isEditStaffDialogOpen, setIsEditStaffDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleteStaffDialogOpen, setIsDeleteStaffDialogOpen] = useState(false);
   const [isCredentialsDialogOpen, setIsCredentialsDialogOpen] = useState(false);
@@ -140,6 +141,10 @@ export default function ManageAdmins() {
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [formData, setFormData] = useState<AdminFormData>(emptyFormData);
   const [staffForm, setStaffForm] = useState<StaffFormData>(emptyStaffForm);
+  const [editStaffForm, setEditStaffForm] = useState<StaffFormData & { isActive: boolean }>({
+    ...emptyStaffForm,
+    isActive: true,
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newCredentials, setNewCredentials] = useState<{
     adminId: string;
