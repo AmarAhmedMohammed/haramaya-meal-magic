@@ -95,6 +95,7 @@ export interface SystemSettings {
   showEthiopianDate: boolean;
   defaultLanguage: 'en' | 'am' | 'or';
   scanningEnabled: boolean;
+  registrationEnabled: boolean;
 }
 
 export interface SupportTicket {

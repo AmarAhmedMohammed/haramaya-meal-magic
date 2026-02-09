@@ -90,7 +90,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
           mealWindows: updatedSettings.mealWindows,
           lockDurationMinutes: updatedSettings.lockDurationMinutes,
           scanningEnabled: updatedSettings.scanningEnabled ?? true,
-          registrationEnabled: (updatedSettings as any).registrationEnabled ?? true,
+          registrationEnabled: updatedSettings.registrationEnabled ?? true,
         });
       }
     });
