@@ -299,6 +299,7 @@ export async function getMealSettings(): Promise<SystemSettings | null> {
         showEthiopianDate: data.showEthiopianDate ?? true,
         defaultLanguage: data.defaultLanguage || "en",
         scanningEnabled: data.scanningEnabled ?? true,
+        registrationEnabled: data.registrationEnabled ?? true,
       } as SystemSettings;
     }
     return null;
@@ -477,6 +478,7 @@ export function subscribeToMealSettings(
           showEthiopianDate: data.showEthiopianDate ?? true,
           defaultLanguage: data.defaultLanguage || "en",
           scanningEnabled: data.scanningEnabled ?? true,
+          registrationEnabled: data.registrationEnabled ?? true,
         } as SystemSettings);
       } else {
         callback(null);

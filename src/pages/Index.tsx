@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useMealSettings } from '@/contexts/MealSettingsContext';
 import huLogo from '@/assets/hu-logo.png';
 import { 
   ScanLine, 
@@ -55,6 +56,8 @@ const features = [
 ];
 
 export default function Index() {
+  const { settings } = useMealSettings();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -123,16 +126,18 @@ export default function Index() {
                 </Button>
               </Link>
               
-              <Link to="/login/registrar">
-                <Button
-                  variant="outline"
-                  size="xl"
-                  className="gap-2 min-w-56 bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/20"
-                >
-                  <FileText className="w-5 h-5" />
-                  Registrar Login
-                </Button>
-              </Link>
+              {settings.registrationEnabled && (
+                <Link to="/login/registrar">
+                  <Button
+                    variant="outline"
+                    size="xl"
+                    className="gap-2 min-w-56 bg-primary-foreground/10 border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/20"
+                  >
+                    <FileText className="w-5 h-5" />
+                    Registrar Login
+                  </Button>
+                </Link>
+              )}
               
               <Link to="/login/cafe">
                 <Button
