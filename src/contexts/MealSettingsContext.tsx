@@ -68,7 +68,7 @@ export function MealSettingsProvider({ children }: { children: ReactNode }) {
             mealWindows: firestoreSettings.mealWindows,
             lockDurationMinutes: firestoreSettings.lockDurationMinutes,
             scanningEnabled: firestoreSettings.scanningEnabled ?? true,
-            registrationEnabled: (firestoreSettings as any).registrationEnabled ?? true,
+            registrationEnabled: firestoreSettings.registrationEnabled ?? true,
           });
         } else {
           // Initialize Firestore with default settings if none exist
