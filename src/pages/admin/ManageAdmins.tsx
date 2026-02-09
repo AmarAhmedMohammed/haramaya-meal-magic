@@ -664,9 +664,24 @@ export default function ManageAdmins() {
                           <TableCell>{s.email}</TableCell>
                           <TableCell>{s.phoneNumber}</TableCell>
                           <TableCell>
-                            <Badge variant={s.isActive ? "granted" : "denied"}>
-                              {s.isActive ? "Active" : "Inactive"}
-                            </Badge>
+                            <Switch
+                              checked={s.isActive}
+                              onCheckedChange={async (checked) => {
+                                try {
+                                  await updateStaff(s.staffId, { isActive: checked });
+                                  toast({
+                                    title: checked ? "Staff Activated" : "Staff Deactivated",
+                                    description: `${s.fullName} is now ${checked ? "active" : "inactive"}.`,
+                                  });
+                                } catch (error: any) {
+                                  toast({
+                                    title: "Error",
+                                    description: error.message || "Failed to update status.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            />
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
@@ -753,9 +768,24 @@ export default function ManageAdmins() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={s.isActive ? "granted" : "denied"}>
-                              {s.isActive ? "Active" : "Inactive"}
-                            </Badge>
+                            <Switch
+                              checked={s.isActive}
+                              onCheckedChange={async (checked) => {
+                                try {
+                                  await updateStaff(s.staffId, { isActive: checked });
+                                  toast({
+                                    title: checked ? "Staff Activated" : "Staff Deactivated",
+                                    description: `${s.fullName} is now ${checked ? "active" : "inactive"}.`,
+                                  });
+                                } catch (error: any) {
+                                  toast({
+                                    title: "Error",
+                                    description: error.message || "Failed to update status.",
+                                    variant: "destructive",
+                                  });
+                                }
+                              }}
+                            />
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
