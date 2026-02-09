@@ -163,6 +163,7 @@ export default function AdminDashboard() {
       showEthiopianDate: false,
       defaultLanguage: 'en' as const,
       scanningEnabled: settings.scanningEnabled,
+      registrationEnabled: settings.registrationEnabled,
     };
     return getCurrentMealType(currentTime, systemSettings);
   }, [currentTime, settings.mealWindows, settings.lockDurationMinutes, settings.scanningEnabled]);

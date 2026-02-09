@@ -31,7 +31,8 @@ export function CurrentMealStatus() {
     lockDurationMinutes: settings.lockDurationMinutes, 
     showEthiopianDate: true, 
     defaultLanguage: 'en' as const,
-    scanningEnabled: settings.scanningEnabled ?? true
+    scanningEnabled: settings.scanningEnabled ?? true,
+    registrationEnabled: settings.registrationEnabled ?? true,
   };
   
   const currentMeal = getCurrentMealType(now, systemSettings);

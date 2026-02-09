@@ -121,6 +121,7 @@ export default function Scanner() {
     showEthiopianDate: true,
     defaultLanguage: "en" as const,
     scanningEnabled: settings.scanningEnabled ?? true,
+    registrationEnabled: settings.registrationEnabled ?? true,
   };
   const activeMeal = getCurrentMealType(now, systemSettings);
 
