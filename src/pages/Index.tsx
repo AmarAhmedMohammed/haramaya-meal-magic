@@ -56,6 +56,8 @@ const features = [
 ];
 
 export default function Index() {
+  const { settings } = useMealSettings();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
