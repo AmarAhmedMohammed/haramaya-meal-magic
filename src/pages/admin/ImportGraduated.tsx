@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, Upload, Plus, Search, Trash2 } from "lucide-react";
+import { GraduationCap, Download, Plus, Search, Trash2 } from "lucide-react";
 import { importStudentsFromExcel, downloadExcelTemplate } from "@/lib/excelUtils";
 import { subscribeToStudents, updateStudent } from "@/lib/firestore";
 import { Student } from "@/types";
@@ -240,7 +240,7 @@ export default function ImportGraduated() {
                 disabled={isImporting}
               />
               <Button disabled={isImporting}>
-                <Upload className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 mr-2" />
                 {isImporting ? "Importing..." : "Import Excel"}
               </Button>
             </div>
