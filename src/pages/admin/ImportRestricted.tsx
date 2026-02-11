@@ -245,7 +245,7 @@ export default function ImportRestricted() {
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={isImporting}
               />
-              <Button disabled={isImporting} variant="destructive">
+              <Button disabled={isImporting} variant="destructive" className="cursor-pointer">
                 <Download className="w-4 h-4 mr-2" />
                 {isImporting ? "Importing..." : "Import Excel"}
               </Button>

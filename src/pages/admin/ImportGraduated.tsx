@@ -239,7 +239,7 @@ export default function ImportGraduated() {
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={isImporting}
               />
-              <Button disabled={isImporting}>
+              <Button disabled={isImporting} className="cursor-pointer">
                 <Download className="w-4 h-4 mr-2" />
                 {isImporting ? "Importing..." : "Import Excel"}
               </Button>
