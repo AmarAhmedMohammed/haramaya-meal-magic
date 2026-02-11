@@ -110,21 +110,6 @@ export function ImportExportButtons({
         <Upload className="w-4 h-4" />
         Export
       </Button>
-
-      <div className="relative">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleImport}
-          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-          disabled={isImporting}
-        />
-        <Button variant="outline" size="sm" disabled={isImporting} className="gap-2">
-          <Download className="w-4 h-4" />
-          {isImporting ? "Importing..." : "Import"}
-        </Button>
-      </div>
     </div>
   );
 }

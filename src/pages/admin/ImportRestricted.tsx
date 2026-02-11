@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ShieldBan, Upload, Plus, Search, Trash2 } from "lucide-react";
+import { ShieldBan, Download, Plus, Search, Trash2 } from "lucide-react";
 import { importStudentsFromExcel } from "@/lib/excelUtils";
 import { subscribeToStudents, updateStudent } from "@/lib/firestore";
 import { Student } from "@/types";
@@ -246,7 +246,7 @@ export default function ImportRestricted() {
                 disabled={isImporting}
               />
               <Button disabled={isImporting} variant="destructive">
-                <Upload className="w-4 h-4 mr-2" />
+                <Download className="w-4 h-4 mr-2" />
                 {isImporting ? "Importing..." : "Import Excel"}
               </Button>
             </div>
