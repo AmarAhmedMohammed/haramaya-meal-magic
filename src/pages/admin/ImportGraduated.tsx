@@ -23,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { GraduationCap, Upload, Plus, Search, Trash2 } from "lucide-react";
 import { importStudentsFromExcel, downloadExcelTemplate } from "@/lib/excelUtils";
-import { subscribeToStudents, updateStudent, createStudent, getStudent } from "@/lib/firestore";
+import { subscribeToStudents, updateStudent } from "@/lib/firestore";
 import { Student } from "@/types";
 
 export default function ImportGraduated() {
@@ -55,37 +55,22 @@ export default function ImportGraduated() {
         let successCount = 0;
         let updateCount = 0;
 
+        let skippedCount = 0;
         for (const studentData of importedStudents) {
           try {
-            // Check if student already exists
             const existingStudent = students.find(
               (s) => s.studentId === studentData.studentId
             );
 
             if (existingStudent) {
-              // Update existing student to graduated
               await updateStudent(existingStudent.studentId, {
                 status: "graduated",
                 cafeStatus: "none",
               });
               updateCount++;
             } else {
-              // Create new student as graduated
-              await createStudent({
-                studentId: studentData.studentId!,
-                fullName: studentData.fullName!,
-                fullNameAmharic: studentData.fullNameAmharic || "",
-                email: "",
-                department: studentData.department || "",
-                year: studentData.year || 1,
-                cafeStatus: "none",
-                cafeteriaType: studentData.cafeteriaType || "christian",
-                hostelResident: studentData.hostelResident || false,
-                monthlyQuota: null,
-                usedQuota: 0,
-                status: "graduated",
-              });
-              successCount++;
+              // Skip unregistered students
+              skippedCount++;
             }
           } catch (error) {
             console.error("Error processing student:", error);
@@ -94,7 +79,7 @@ export default function ImportGraduated() {
 
         toast({
           title: "Import Complete",
-          description: `${successCount} new students added, ${updateCount} students updated to graduated status.`,
+          description: `${updateCount} students updated to graduated status.${skippedCount > 0 ? ` ${skippedCount} unregistered students skipped.` : ''}`,
         });
         setIsImporting(false);
         event.target.value = "";
@@ -112,50 +97,47 @@ export default function ImportGraduated() {
   };
 
   const handleManualAdd = async () => {
-    if (!manualStudentId.trim() || !manualFullName.trim()) {
+    if (!manualStudentId.trim()) {
       toast({
         title: "Error",
-        description: "Please enter both Student ID and Full Name",
+        description: "Please enter a Student ID",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Check if student exists
+      // Check if student exists - must be previously registered
       const existingStudent = students.find(
         (s) => s.studentId === manualStudentId.trim()
       );
 
-      if (existingStudent) {
-        await updateStudent(existingStudent.studentId, {
-          status: "graduated",
-          cafeStatus: "none",
-        });
+      if (!existingStudent) {
         toast({
-          title: "Student Updated",
-          description: `${existingStudent.fullName} has been marked as graduated.`,
+          title: "Student Not Found",
+          description: "This student ID is not registered in the system. Only previously registered students can be marked as graduated.",
+          variant: "destructive",
         });
-      } else {
-        await createStudent({
-          studentId: manualStudentId.trim(),
-          fullName: manualFullName.trim(),
-          fullNameAmharic: "",
-          email: "",
-          department: "",
-          year: 1,
-          cafeStatus: "none",
-          cafeteriaType: "christian",
-          hostelResident: false,
-          monthlyQuota: null,
-          usedQuota: 0,
-          status: "graduated",
-        });
-        toast({
-          title: "Student Added",
-          description: `${manualFullName} has been added as graduated.`,
-        });
+        return;
       }
+
+      if (existingStudent.status === "graduated") {
+        toast({
+          title: "Already Graduated",
+          description: `${existingStudent.fullName} is already marked as graduated.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await updateStudent(existingStudent.studentId, {
+        status: "graduated",
+        cafeStatus: "none",
+      });
+      toast({
+        title: "Student Graduated",
+        description: `${existingStudent.fullName} has been marked as graduated.`,
+      });
 
       setManualStudentId("");
       setManualFullName("");
@@ -164,7 +146,7 @@ export default function ImportGraduated() {
       console.error("Error adding student:", error);
       toast({
         title: "Error",
-        description: "Failed to add student. Please try again.",
+        description: "Failed to update student. Please try again.",
         variant: "destructive",
       });
     }
