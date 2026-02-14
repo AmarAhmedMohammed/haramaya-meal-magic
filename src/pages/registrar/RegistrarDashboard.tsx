@@ -508,6 +508,7 @@ export default function RegistrarDashboard() {
 </html>
           `;
 
+          
           // Replace placeholders
           html = html.replace(/{{student_name}}/g, formData.fullName);
           html = html.replace(/{{student_id}}/g, originalStudentId);
