@@ -508,15 +508,13 @@ export default function RegistrarDashboard() {
 </html>
           `;
 
-          
           // Replace placeholders
           html = html.replace(/{{student_name}}/g, formData.fullName);
           html = html.replace(/{{student_id}}/g, originalStudentId);
           html = html.replace(/{{to_email}}/g, formData.email);
 
           // Send via Brevo with inline QR code attachment
-          const BREVO_API_KEY =
-            "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";
+          const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY;
 
           console.log("Sending email to:", formData.email);
 
@@ -531,8 +529,12 @@ export default function RegistrarDashboard() {
               },
               body: JSON.stringify({
                 sender: {
-                  name: "Haramaya University Cafeteria",
-                  email: "amarselmansudeys@gmail.com",
+                  name:
+                    import.meta.env.VITE_SENDER_NAME ||
+                    "Haramaya University Cafeteria",
+                  email:
+                    import.meta.env.VITE_SENDER_EMAIL ||
+                    "amarselmansudeys@gmail.com",
                 },
                 to: [{ email: formData.email, name: formData.fullName }],
                 subject: "Cafeteria Registration Successful – Your QR Code",
@@ -741,8 +743,13 @@ export default function RegistrarDashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        <Tabs defaultValue={settings.registrationEnabled ? "register" : "manage"} className="space-y-6">
-          <TabsList className={`grid w-full ${settings.registrationEnabled ? "grid-cols-2" : "grid-cols-1"}`}>
+        <Tabs
+          defaultValue={settings.registrationEnabled ? "register" : "manage"}
+          className="space-y-6"
+        >
+          <TabsList
+            className={`grid w-full ${settings.registrationEnabled ? "grid-cols-2" : "grid-cols-1"}`}
+          >
             {settings.registrationEnabled && (
               <TabsTrigger value="register" className="gap-2">
                 <UserPlus className="w-4 h-4" />
@@ -757,284 +764,287 @@ export default function RegistrarDashboard() {
 
           {/* Register Tab */}
           {settings.registrationEnabled && (
-          <TabsContent value="register">
-            <Card variant="elevated">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="w-5 h-5 text-accent" />
-                  Register Student for Meal Service
-                </CardTitle>
-                <CardDescription>
-                  Enter student details, assign cafeteria, and capture photo
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid lg:grid-cols-2 gap-8">
-                    {/* Form Fields */}
-                    <div className="space-y-4">
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Student ID *</Label>
-                          <Input
-                            placeholder="e.g., UGPR0680/16"
-                            value={formData.studentId}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                studentId: e.target.value.toUpperCase(),
-                              }))
-                            }
-                            className="font-mono"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Email *</Label>
-                          <Input
-                            type="email"
-                            placeholder="student@haramaya.edu.et"
-                            value={formData.email}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                email: e.target.value.toLowerCase(),
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Full Name (English) *</Label>
-                          <Input
-                            placeholder="Full name"
-                            value={formData.fullName}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                fullName: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Full Name (Amharic)</Label>
-                          <Input
-                            placeholder="ሙሉ ስም"
-                            value={formData.fullNameAmharic}
-                            onChange={(e) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                fullNameAmharic: e.target.value,
-                              }))
-                            }
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Department *</Label>
-                          <Select
-                            value={formData.department}
-                            onValueChange={(value) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                department: value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select department" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {departments.map((dept) => (
-                                <SelectItem key={dept} value={dept}>
-                                  {dept}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Year *</Label>
-                          <Select
-                            value={formData.year.toString()}
-                            onValueChange={(value) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                year: parseInt(value),
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {[1, 2, 3, 4, 5, 6, 7].map((year) => (
-                                <SelectItem key={year} value={year.toString()}>
-                                  Year {year}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <div className="grid sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label>Cafeteria Type *</Label>
-                          <Select
-                            value={formData.cafeteriaType}
-                            onValueChange={(value: CafeteriaType) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                cafeteriaType: value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="muslim">
-                                Muslim Cafe
-                              </SelectItem>
-                              <SelectItem value="christian">
-                                Christian Cafe
-                              </SelectItem>
-                              <SelectItem value="fresh">
-                                Freshman Cafe
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Meal Status</Label>
-                          <Select
-                            value={formData.cafeStatus}
-                            onValueChange={(value: CafeStatus) =>
-                              setFormData((prev) => ({
-                                ...prev,
-                                cafeStatus: value,
-                              }))
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="cafe">Active</SelectItem>
-                              <SelectItem value="none">Inactive</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Photo Capture */}
-                    <div className="space-y-4">
-                      <Label>Student Photo (3:4 Ratio) *</Label>
-                      <div className="relative aspect-[3/4] max-w-xs mx-auto bg-muted rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30">
-                        {showCamera ? (
-                          <>
-                            <video
-                              ref={videoRef}
-                              autoPlay
-                              playsInline
-                              muted
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="secondary"
-                                onClick={stopCamera}
-                              >
-                                <X className="w-4 h-4 mr-1" />
-                                Cancel
-                              </Button>
-                              <Button
-                                type="button"
-                                size="sm"
-                                onClick={capturePhoto}
-                              >
-                                <Camera className="w-4 h-4 mr-1" />
-                                Capture
-                              </Button>
-                            </div>
-                          </>
-                        ) : capturedImage ? (
-                          <>
-                            <img
-                              src={capturedImage}
-                              alt="Captured"
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute top-2 right-2">
-                              <Badge variant="granted" className="gap-1">
-                                <CheckCircle className="w-3 h-3" />
-                                Captured
-                              </Badge>
-                            </div>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="secondary"
-                              className="absolute bottom-4 left-1/2 -translate-x-1/2"
-                              onClick={retakePhoto}
-                            >
-                              <RotateCcw className="w-4 h-4 mr-1" />
-                              Retake
-                            </Button>
-                          </>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                            <User className="w-16 h-16 mb-4" />
-                            <p className="text-sm mb-4">No photo captured</p>
-                            <div className="flex gap-2">
-                              <Button
-                                type="button"
-                                variant="secondary"
-                                onClick={startCamera}
-                              >
-                                <Camera className="w-4 h-4 mr-2" />
-                                Camera
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => fileInputRef.current?.click()}
-                              >
-                                <Upload className="w-4 h-4 mr-2" />
-                                Upload
-                              </Button>
-                            </div>
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/*"
-                              className="hidden"
-                              onChange={handleFileUpload}
+            <TabsContent value="register">
+              <Card variant="elevated">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="w-5 h-5 text-accent" />
+                    Register Student for Meal Service
+                  </CardTitle>
+                  <CardDescription>
+                    Enter student details, assign cafeteria, and capture photo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="grid lg:grid-cols-2 gap-8">
+                      {/* Form Fields */}
+                      <div className="space-y-4">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Student ID *</Label>
+                            <Input
+                              placeholder="e.g., UGPR0680/16"
+                              value={formData.studentId}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  studentId: e.target.value.toUpperCase(),
+                                }))
+                              }
+                              className="font-mono"
                             />
                           </div>
-                        )}
-                      </div>
-                      <canvas ref={canvasRef} className="hidden" />
-                    </div>
-                  </div>
+                          <div className="space-y-2">
+                            <Label>Email *</Label>
+                            <Input
+                              type="email"
+                              placeholder="student@haramaya.edu.et"
+                              value={formData.email}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  email: e.target.value.toLowerCase(),
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
 
-                  <div className="flex justify-end pt-4 border-t">
-                    <Button type="submit" disabled={isSubmitting} size="lg">
-                      {isSubmitting ? "Registering..." : "Register Student"}
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Full Name (English) *</Label>
+                            <Input
+                              placeholder="Full name"
+                              value={formData.fullName}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  fullName: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Full Name (Amharic)</Label>
+                            <Input
+                              placeholder="ሙሉ ስም"
+                              value={formData.fullNameAmharic}
+                              onChange={(e) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  fullNameAmharic: e.target.value,
+                                }))
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Department *</Label>
+                            <Select
+                              value={formData.department}
+                              onValueChange={(value) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  department: value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select department" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {departments.map((dept) => (
+                                  <SelectItem key={dept} value={dept}>
+                                    {dept}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Year *</Label>
+                            <Select
+                              value={formData.year.toString()}
+                              onValueChange={(value) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  year: parseInt(value),
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {[1, 2, 3, 4, 5, 6, 7].map((year) => (
+                                  <SelectItem
+                                    key={year}
+                                    value={year.toString()}
+                                  >
+                                    Year {year}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Cafeteria Type *</Label>
+                            <Select
+                              value={formData.cafeteriaType}
+                              onValueChange={(value: CafeteriaType) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  cafeteriaType: value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="muslim">
+                                  Muslim Cafe
+                                </SelectItem>
+                                <SelectItem value="christian">
+                                  Christian Cafe
+                                </SelectItem>
+                                <SelectItem value="fresh">
+                                  Freshman Cafe
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Meal Status</Label>
+                            <Select
+                              value={formData.cafeStatus}
+                              onValueChange={(value: CafeStatus) =>
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  cafeStatus: value,
+                                }))
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="cafe">Active</SelectItem>
+                                <SelectItem value="none">Inactive</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Photo Capture */}
+                      <div className="space-y-4">
+                        <Label>Student Photo (3:4 Ratio) *</Label>
+                        <div className="relative aspect-[3/4] max-w-xs mx-auto bg-muted rounded-lg overflow-hidden border-2 border-dashed border-muted-foreground/30">
+                          {showCamera ? (
+                            <>
+                              <video
+                                ref={videoRef}
+                                autoPlay
+                                playsInline
+                                muted
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={stopCamera}
+                                >
+                                  <X className="w-4 h-4 mr-1" />
+                                  Cancel
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={capturePhoto}
+                                >
+                                  <Camera className="w-4 h-4 mr-1" />
+                                  Capture
+                                </Button>
+                              </div>
+                            </>
+                          ) : capturedImage ? (
+                            <>
+                              <img
+                                src={capturedImage}
+                                alt="Captured"
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute top-2 right-2">
+                                <Badge variant="granted" className="gap-1">
+                                  <CheckCircle className="w-3 h-3" />
+                                  Captured
+                                </Badge>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="secondary"
+                                className="absolute bottom-4 left-1/2 -translate-x-1/2"
+                                onClick={retakePhoto}
+                              >
+                                <RotateCcw className="w-4 h-4 mr-1" />
+                                Retake
+                              </Button>
+                            </>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                              <User className="w-16 h-16 mb-4" />
+                              <p className="text-sm mb-4">No photo captured</p>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="secondary"
+                                  onClick={startCamera}
+                                >
+                                  <Camera className="w-4 h-4 mr-2" />
+                                  Camera
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => fileInputRef.current?.click()}
+                                >
+                                  <Upload className="w-4 h-4 mr-2" />
+                                  Upload
+                                </Button>
+                              </div>
+                              <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={handleFileUpload}
+                              />
+                            </div>
+                          )}
+                        </div>
+                        <canvas ref={canvasRef} className="hidden" />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end pt-4 border-t">
+                      <Button type="submit" disabled={isSubmitting} size="lg">
+                        {isSubmitting ? "Registering..." : "Register Student"}
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
           )}
 
           {/* Manage Tab */}
